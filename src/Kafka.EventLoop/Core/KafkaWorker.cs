@@ -1,21 +1,25 @@
-﻿using Kafka.EventLoop.DependencyInjection;
+﻿using Kafka.EventLoop.Configuration.Options;
+using Kafka.EventLoop.DependencyInjection;
 
 namespace Kafka.EventLoop.Core
 {
     internal class KafkaWorker<TMessage> : IKafkaWorker
     {
-        private readonly string _consumerGroupName;
+        private readonly IConsumerGroupOptions _consumerGroupOptions;
         private readonly int _consumerId;
+        private readonly IKafkaConsumerFactory _kafkaConsumerFactory;
         private readonly IIntakeScopeFactory _intakeScopeFactory;
         private int _isRunning;
 
         public KafkaWorker(
-            string consumerGroupName,
+            IConsumerGroupOptions consumerGroupOptions,
             int consumerId,
+            IKafkaConsumerFactory kafkaConsumerFactory,
             IIntakeScopeFactory intakeScopeFactory)
         {
-            _consumerGroupName = consumerGroupName;
+            _consumerGroupOptions = consumerGroupOptions;
             _consumerId = consumerId;
+            _kafkaConsumerFactory = kafkaConsumerFactory;
             _intakeScopeFactory = intakeScopeFactory;
         }
 
@@ -24,21 +28,41 @@ namespace Kafka.EventLoop.Core
             if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
             {
                 throw new InvalidOperationException(
-                    $"Consumer {_consumerGroupName}:{_consumerId} is already running");
+                    $"Consumer {_consumerGroupOptions.Name}:{_consumerId} is already running");
             }
 
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                using (var scope = _intakeScopeFactory.CreateScope<TMessage>())
-                {
-                    var controller = scope.GetController();
-                    await controller.ProcessAsync(Array.Empty<TMessage>(), cancellationToken);
-                }
-
-                await Task.Delay(1000, cancellationToken);
-            }
+            // todo: error handling
+            await RunNewConsumerAsync(cancellationToken);
 
             _isRunning = 0;
+        }
+
+        private async Task RunNewConsumerAsync(CancellationToken cancellationToken)
+        {
+            using var consumer = _kafkaConsumerFactory.Create<TMessage>();
+            try
+            {
+                await consumer.SubscribeAsync(cancellationToken);
+
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    using var intakeScope = _intakeScopeFactory.CreateScope<TMessage>(_consumerGroupOptions);
+
+                    var messages = consumer.CollectMessages(cancellationToken);
+
+                    var controller = intakeScope.GetController();
+                    await controller.ProcessAsync(messages, cancellationToken);
+
+                    await consumer.CommitAsync(messages, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                await consumer.CloseAsync(cancellationToken);
+            }
         }
     }
 }

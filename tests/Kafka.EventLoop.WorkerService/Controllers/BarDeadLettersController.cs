@@ -11,7 +11,7 @@ namespace Kafka.EventLoop.WorkerService.Controllers
             _logger = logger;
         }
 
-        public Task ProcessAsync(BarMessage[] messages, CancellationToken token)
+        public Task ProcessAsync(MessageInfo<BarMessage>[] messages, CancellationToken token)
         {
             _logger.LogInformation("\tBarDeadLettersController.ProcessAsync");
             return Task.CompletedTask;

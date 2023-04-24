@@ -6,11 +6,16 @@ namespace Kafka.EventLoop.DependencyInjection
     internal class KafkaWorkerFactory : IKafkaWorkerFactory
     {
         private readonly IKafkaOptions _options;
+        private readonly IKafkaConsumerFactory _kafkaConsumerFactory;
         private readonly IIntakeScopeFactory _intakeScopeFactory;
 
-        public KafkaWorkerFactory(IKafkaOptions options, IIntakeScopeFactory intakeScopeFactory)
+        public KafkaWorkerFactory(
+            IKafkaOptions options,
+            IKafkaConsumerFactory kafkaConsumerFactory,
+            IIntakeScopeFactory intakeScopeFactory)
         {
             _options = options;
+            _kafkaConsumerFactory = kafkaConsumerFactory;
             _intakeScopeFactory = intakeScopeFactory;
         }
 
@@ -26,8 +31,9 @@ namespace Kafka.EventLoop.DependencyInjection
             var workerType = TypeResolver.BuildWorkerType(consumerGroup.MessageType);
             var args = new object[]
             {
-                consumerGroupName,
+                consumerGroup,
                 consumerId,
+                _kafkaConsumerFactory,
                 _intakeScopeFactory
             };
             var worker = (IKafkaWorker)Activator.CreateInstance(workerType, args)!;

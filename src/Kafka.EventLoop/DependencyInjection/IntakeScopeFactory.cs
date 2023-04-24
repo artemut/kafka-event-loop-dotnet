@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Kafka.EventLoop.Configuration.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kafka.EventLoop.DependencyInjection
 {
@@ -11,9 +12,9 @@ namespace Kafka.EventLoop.DependencyInjection
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        public IIntakeScope<TMessage> CreateScope<TMessage>()
+        public IIntakeScope<TMessage> CreateScope<TMessage>(IConsumerGroupOptions consumerGroupOptions)
         {
-            return new IntakeScope<TMessage>(_serviceScopeFactory.CreateScope());
+            return new IntakeScope<TMessage>(_serviceScopeFactory.CreateScope(), consumerGroupOptions);
         }
     }
 }

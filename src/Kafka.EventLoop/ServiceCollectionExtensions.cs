@@ -27,14 +27,34 @@ namespace Kafka.EventLoop
             // register dependencies in IoC-container
             foreach (var consumerGroupOptions in options.ConsumerGroups)
             {
-                services.AddKafkaController(consumerGroupOptions);
+                services
+                    .AddKafkaConsumer(consumerGroupOptions)
+                    .AddKafkaController(consumerGroupOptions);
             }
+            services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
             services.AddSingleton<IIntakeScopeFactory, IntakeScopeFactory>();
             services.AddSingleton<IKafkaWorkerFactory, KafkaWorkerFactory>();
 
             // register hosted service
             services.AddHostedService<KafkaBackgroundService>();
 
+            return services;
+        }
+
+        private static IServiceCollection AddKafkaConsumer(
+            this IServiceCollection services,
+            IConsumerGroupOptions consumerGroupOptions)
+        {
+            var messageType = consumerGroupOptions.MessageType;
+            var implType = TypeResolver.BuildConsumerImplType(messageType);
+            if (services.Any(x => x.ImplementationType == implType))
+            {
+                // consumer of such type is already registered for another consumer group
+                return services;
+            }
+
+            var serviceType = TypeResolver.BuildConsumerServiceType(messageType);
+            services.AddTransient(serviceType, implType);
             return services;
         }
 
@@ -48,10 +68,8 @@ namespace Kafka.EventLoop
                 // controller of such type is already registered for another consumer group
                 return services;
             }
-
-            var messageType = consumerGroupOptions.MessageType;
-            var serviceType = TypeResolver.BuildControllerServiceType(messageType);
-            services.AddScoped(serviceType, implType);
+            
+            services.AddScoped(implType);
             return services;
         }
     }

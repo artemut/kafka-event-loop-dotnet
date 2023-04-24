@@ -38,7 +38,8 @@ namespace Kafka.EventLoop.Core
 
             try
             {
-                await Task.WhenAll(workers.Select(c => c.RunAsync(stoppingToken)));
+                var tasks = workers.Select(c => Task.Run(() => c.RunAsync(stoppingToken), stoppingToken));
+                await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException) when(stoppingToken.IsCancellationRequested)
             {

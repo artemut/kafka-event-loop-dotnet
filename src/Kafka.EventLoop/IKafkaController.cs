@@ -1,7 +1,7 @@
 ﻿namespace Kafka.EventLoop
 {
-    public interface IKafkaController<in TMessage>
+    public interface IKafkaController<TMessage>
     {
-        Task ProcessAsync(TMessage[] messages, CancellationToken token);
+        Task ProcessAsync(MessageInfo<TMessage>[] messages, CancellationToken token);
     }
 }

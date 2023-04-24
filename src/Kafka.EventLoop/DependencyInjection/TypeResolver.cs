@@ -1,4 +1,5 @@
-﻿using Kafka.EventLoop.Core;
+﻿using Kafka.EventLoop.Consume;
+using Kafka.EventLoop.Core;
 
 namespace Kafka.EventLoop.DependencyInjection
 {
@@ -9,9 +10,14 @@ namespace Kafka.EventLoop.DependencyInjection
             return typeof(KafkaWorker<>).MakeGenericType(messageType);
         }
 
-        public static Type BuildControllerServiceType(Type messageType)
+        public static Type BuildConsumerServiceType(Type messageType)
         {
-            return typeof(IKafkaController<>).MakeGenericType(messageType);
+            return typeof(IKafkaConsumer<>).MakeGenericType(messageType);
+        }
+
+        public static Type BuildConsumerImplType(Type messageType)
+        {
+            return typeof(KafkaConsumer<>).MakeGenericType(messageType);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Kafka.EventLoop.DependencyInjection
 {
-    internal interface IIntakeScope<in TMessage> : IDisposable
+    internal interface IIntakeScope<TMessage> : IDisposable
     {
         IKafkaController<TMessage> GetController();
     }
