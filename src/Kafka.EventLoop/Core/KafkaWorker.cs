@@ -7,6 +7,7 @@ namespace Kafka.EventLoop.Core
         private readonly string _consumerGroupName;
         private readonly int _consumerId;
         private readonly IIntakeScopeFactory _intakeScopeFactory;
+        private int _isRunning;
 
         public KafkaWorker(
             string consumerGroupName,
@@ -18,9 +19,26 @@ namespace Kafka.EventLoop.Core
             _intakeScopeFactory = intakeScopeFactory;
         }
 
-        public Task RunAsync(CancellationToken cancellationToken)
+        public async Task RunAsync(CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
+            {
+                throw new InvalidOperationException(
+                    $"Consumer {_consumerGroupName}:{_consumerId} is already running");
+            }
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                using (var scope = _intakeScopeFactory.CreateScope<TMessage>())
+                {
+                    var controller = scope.GetController();
+                    await controller.ProcessAsync(Array.Empty<TMessage>(), cancellationToken);
+                }
+
+                await Task.Delay(1000, cancellationToken);
+            }
+
+            _isRunning = 0;
         }
     }
 }

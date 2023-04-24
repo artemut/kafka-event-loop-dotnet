@@ -1,6 +1,7 @@
 ﻿using Kafka.EventLoop.Configuration.Helpers;
 using Kafka.EventLoop.Configuration.Options;
 using Kafka.EventLoop.Configuration.OptionsBuilders;
+using Kafka.EventLoop.Core;
 using Kafka.EventLoop.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,9 @@ namespace Kafka.EventLoop
             }
             services.AddSingleton<IIntakeScopeFactory, IntakeScopeFactory>();
             services.AddSingleton<IKafkaWorkerFactory, KafkaWorkerFactory>();
+
+            // register hosted service
+            services.AddHostedService<KafkaBackgroundService>();
 
             return services;
         }
