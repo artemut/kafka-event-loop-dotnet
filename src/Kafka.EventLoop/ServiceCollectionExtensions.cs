@@ -1,4 +1,5 @@
-﻿using Kafka.EventLoop.Configuration.Options;
+﻿using Kafka.EventLoop.Configuration.Helpers;
+using Kafka.EventLoop.Configuration.Options;
 using Kafka.EventLoop.Configuration.OptionsBuilders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,10 @@ namespace Kafka.EventLoop
             var optionsBuilder = new KafkaOptionsBuilder();
             var options = optionsAction(optionsBuilder);
             services.AddSingleton(options);
+
+            // read config
+            var kafkaConfig = ConfigReader.Read(configuration);
+            services.AddSingleton(kafkaConfig);
 
             return services;
         }
