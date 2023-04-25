@@ -24,71 +24,71 @@ namespace Kafka.EventLoop.DependencyInjection
             _internalRegistry = internalRegistry;
         }
 
-        public void AddJsonMessageDeserializer<TMessage>(string consumerGroupName)
+        public void AddJsonMessageDeserializer<TMessage>(string groupId)
         {
             _internalRegistry
-                .MessageDeserializerProviders[consumerGroupName] = _ => new JsonDeserializer<TMessage>();
+                .MessageDeserializerProviders[groupId] = _ => new JsonDeserializer<TMessage>();
         }
 
-        public void AddCustomMessageDeserializer<TDeserializer>(string consumerGroupName) where TDeserializer : class
+        public void AddCustomMessageDeserializer<TDeserializer>(string groupId) where TDeserializer : class
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TDeserializer)))
             {
                 _externalRegistry.AddTransient<TDeserializer>();
             }
             _internalRegistry
-                .MessageDeserializerProviders[consumerGroupName] = sp => sp.GetRequiredService<TDeserializer>();
+                .MessageDeserializerProviders[groupId] = sp => sp.GetRequiredService<TDeserializer>();
         }
 
-        public void AddKafkaController<TController>(string consumerGroupName) where TController : class
+        public void AddKafkaController<TController>(string groupId) where TController : class
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TController)))
             {
                 _externalRegistry.AddScoped<TController>();
             }
             _internalRegistry
-                .KafkaControllerProviders[consumerGroupName] = sp => sp.GetRequiredService<TController>();
+                .KafkaControllerProviders[groupId] = sp => sp.GetRequiredService<TController>();
         }
 
-        public void AddConsumerConfig(string consumerGroupName, ConsumerConfig config)
+        public void AddConsumerConfig(string groupId, ConsumerConfig config)
         {
-            _internalRegistry.ConsumerConfigProviders[consumerGroupName] = config;
+            _internalRegistry.ConsumerConfigProviders[groupId] = config;
         }
 
-        public void AddKafkaConsumer<TMessage>(string consumerGroupName)
+        public void AddKafkaConsumer<TMessage>(string groupId)
         {
-            _internalRegistry.KafkaConsumerFactories[consumerGroupName] = sp =>
+            _internalRegistry.KafkaConsumerFactories[groupId] = sp =>
                 new KafkaConsumer<TMessage>(
-                    BuildConfluentConsumer<TMessage>(consumerGroupName, sp),
+                    BuildConfluentConsumer<TMessage>(groupId, sp),
                     sp.GetRequiredService<ILogger<KafkaConsumer<TMessage>>>());
         }
 
-        public void AddIntakeScope<TMessage>(string consumerGroupName)
+        public void AddIntakeScope<TMessage>(string groupId)
         {
-            _internalRegistry.IntakeScopeFactories[consumerGroupName] = sp =>
+            _internalRegistry.IntakeScopeFactories[groupId] = sp =>
                 new IntakeScope<TMessage>(
                     sp.GetRequiredService<IServiceScopeFactory>().CreateScope(),
-                    scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[consumerGroupName](scopedSp));
+                    scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }
 
-        public void AddKafkaWorker<TMessage>(string consumerGroupName)
+        public void AddKafkaWorker<TMessage>(string groupId)
         {
-            _internalRegistry.KafkaWorkerFactories[consumerGroupName] = (sp, consumerId) =>
+            _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
                 new KafkaWorker<TMessage>(
-                    consumerGroupName,
+                    groupId,
                     consumerId,
-                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[consumerGroupName](sp),
-                    () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[consumerGroupName](sp));
+                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp),
+                    () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp));
         }
 
         private IConsumer<Ignore, TMessage> BuildConfluentConsumer<TMessage>(
-            string consumerGroupName,
+            string groupId,
             IServiceProvider serviceProvider)
         {
-            var config = _internalRegistry.ConsumerConfigProviders[consumerGroupName];
+            var config = _internalRegistry.ConsumerConfigProviders[groupId];
             var builder = new ConsumerBuilder<Ignore, TMessage>(config);
             var deserializer = (IDeserializer<TMessage>)_internalRegistry
-                .MessageDeserializerProviders[consumerGroupName](serviceProvider);
+                .MessageDeserializerProviders[groupId](serviceProvider);
             return builder
                 .SetValueDeserializer(deserializer)
                 .Build();

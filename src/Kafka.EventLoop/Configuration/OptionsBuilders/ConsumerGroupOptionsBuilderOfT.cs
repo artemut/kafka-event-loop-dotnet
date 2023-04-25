@@ -6,14 +6,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
     internal sealed class ConsumerGroupOptionsBuilder<TMessage> : IConsumerGroupOptionsBuilder<TMessage>
     {
-        private readonly string _name;
+        private readonly string _groupId;
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private bool _hasDeserializerType;
         private bool _hasControllerType;
 
-        public ConsumerGroupOptionsBuilder(string name, IDependencyRegistrar dependencyRegistrar)
+        public ConsumerGroupOptionsBuilder(string groupId, IDependencyRegistrar dependencyRegistrar)
         {
-            _name = name;
+            _groupId = groupId;
             _dependencyRegistrar = dependencyRegistrar;
         }
 
@@ -22,9 +22,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasDeserializerType)
             {
                 throw new InvalidOperationException(
-                    $"Message deserializer is already configured for consumer group {_name}");
+                    $"Message deserializer is already configured for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddJsonMessageDeserializer<TMessage>(_name);
+            _dependencyRegistrar.AddJsonMessageDeserializer<TMessage>(_groupId);
             _hasDeserializerType = true;
             return this;
         }
@@ -35,9 +35,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasDeserializerType)
             {
                 throw new InvalidOperationException(
-                    $"Message deserializer is already configured for consumer group {_name}");
+                    $"Message deserializer is already configured for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_name);
+            _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_groupId);
             _hasDeserializerType = true;
             return this;
         }
@@ -48,9 +48,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasControllerType)
             {
                 throw new InvalidOperationException(
-                    $"Controller is already configured for consumer group {_name}");
+                    $"Controller is already configured for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddKafkaController<TController>(_name);
+            _dependencyRegistrar.AddKafkaController<TController>(_groupId);
             _hasControllerType = true;
             return this;
         }
@@ -74,26 +74,26 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (!_hasControllerType)
             {
                 throw new InvalidOperationException(
-                    $"Missing controller configuration for consumer group {_name}");
+                    $"Missing controller configuration for consumer group {_groupId}");
             }
             if (!_hasDeserializerType)
             {
                 throw new InvalidOperationException(
-                    $"Missing message deserializer configuration for consumer group {_name}");
+                    $"Missing message deserializer configuration for consumer group {_groupId}");
             }
 
-            _dependencyRegistrar.AddConsumerConfig(_name, new ConsumerConfig
+            _dependencyRegistrar.AddConsumerConfig(_groupId, new ConsumerConfig
             {
-                GroupId = _name,
+                GroupId = _groupId,
                 BootstrapServers = "", // todo
                 AutoOffsetReset = AutoOffsetReset.Earliest, // todo
                 EnableAutoCommit = false // todo
             });
-            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_name);
-            _dependencyRegistrar.AddIntakeScope<TMessage>(_name);
-            _dependencyRegistrar.AddKafkaWorker<TMessage>(_name);
+            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId);
+            _dependencyRegistrar.AddIntakeScope<TMessage>(_groupId);
+            _dependencyRegistrar.AddKafkaWorker<TMessage>(_groupId);
 
-            return new ConsumerGroupOptions(_name);
+            return new ConsumerGroupOptions(_groupId);
         }
     }
 }

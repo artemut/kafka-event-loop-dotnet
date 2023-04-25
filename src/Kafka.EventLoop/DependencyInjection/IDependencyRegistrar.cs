@@ -4,12 +4,12 @@ namespace Kafka.EventLoop.DependencyInjection
 {
     internal interface IDependencyRegistrar
     {
-        void AddJsonMessageDeserializer<TMessage>(string consumerGroupName);
-        void AddCustomMessageDeserializer<TDeserializer>(string consumerGroupName) where TDeserializer : class;
-        void AddKafkaController<TController>(string consumerGroupName) where TController : class;
-        void AddConsumerConfig(string consumerGroupName, ConsumerConfig config);
-        void AddKafkaConsumer<TMessage>(string consumerGroupName);
-        void AddIntakeScope<TMessage>(string consumerGroupName);
-        void AddKafkaWorker<TMessage>(string consumerGroupName);
+        void AddJsonMessageDeserializer<TMessage>(string groupId);
+        void AddCustomMessageDeserializer<TDeserializer>(string groupId) where TDeserializer : class;
+        void AddKafkaController<TController>(string groupId) where TController : class;
+        void AddConsumerConfig(string groupId, ConsumerConfig config);
+        void AddKafkaConsumer<TMessage>(string groupId);
+        void AddIntakeScope<TMessage>(string groupId);
+        void AddKafkaWorker<TMessage>(string groupId);
     }
 }

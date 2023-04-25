@@ -26,11 +26,11 @@ namespace Kafka.EventLoop.Core
             foreach (var consumerGroup in _kafkaConfig.ConsumerGroups)
             {
                 _logger.LogInformation(
-                    $"Starting {consumerGroup.ParallelConsumers} consumers for consumer group {consumerGroup.Name}");
+                    $"Starting {consumerGroup.ParallelConsumers} consumers for consumer group {consumerGroup.GroupId}");
 
                 for (var i = 0; i < consumerGroup.ParallelConsumers; i++)
                 {
-                    var worker = _kafkaWorkerFactory(consumerGroup.Name, i);
+                    var worker = _kafkaWorkerFactory(consumerGroup.GroupId, i);
                     workers.Add(worker);
                 }
             }

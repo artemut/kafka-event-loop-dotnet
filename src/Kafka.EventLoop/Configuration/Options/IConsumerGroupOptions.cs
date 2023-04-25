@@ -2,6 +2,6 @@
 {
     public interface IConsumerGroupOptions
     {
-        string Name { get; }
+        string GroupId { get; }
     }
 }

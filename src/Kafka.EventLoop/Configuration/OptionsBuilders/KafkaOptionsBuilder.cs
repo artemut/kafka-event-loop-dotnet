@@ -14,18 +14,18 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         }
 
         public IKafkaOptionsBuilder HasConsumerGroup(
-            string name,
+            string groupId,
             Func<IConsumerGroupOptionsBuilder, IConsumerGroupOptions> optionsAction)
         {
-            if (_consumerGroups.ContainsKey(name))
+            if (_consumerGroups.ContainsKey(groupId))
             {
                 throw new InvalidOperationException(
-                    $"Consumer group {name} is already configured");
+                    $"Consumer group {groupId} is already configured");
             }
 
-            var optionsBuilder = new ConsumerGroupOptionsBuilder(name, _dependencyRegistrar);
+            var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar);
             var options = optionsAction(optionsBuilder);
-            _consumerGroups.Add(name, options);
+            _consumerGroups.Add(groupId, options);
 
             return this;
         }

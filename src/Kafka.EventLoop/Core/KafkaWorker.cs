@@ -5,19 +5,19 @@ namespace Kafka.EventLoop.Core
 {
     internal class KafkaWorker<TMessage> : IKafkaWorker
     {
-        private readonly string _consumerGroupName;
+        private readonly string _groupId;
         private readonly int _consumerId;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
         private readonly Func<IIntakeScope<TMessage>> _intakeScopeFactory;
         private int _isRunning;
 
         public KafkaWorker(
-            string consumerGroupName,
+            string groupId,
             int consumerId,
             Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
             Func<IIntakeScope<TMessage>> intakeScopeFactory)
         {
-            _consumerGroupName = consumerGroupName;
+            _groupId = groupId;
             _consumerId = consumerId;
             _kafkaConsumerFactory = kafkaConsumerFactory;
             _intakeScopeFactory = intakeScopeFactory;
@@ -28,7 +28,7 @@ namespace Kafka.EventLoop.Core
             if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
             {
                 throw new InvalidOperationException(
-                    $"Consumer {_consumerGroupName}:{_consumerId} is already running");
+                    $"Consumer {_groupId}:{_consumerId} is already running");
             }
 
             // todo: error handling

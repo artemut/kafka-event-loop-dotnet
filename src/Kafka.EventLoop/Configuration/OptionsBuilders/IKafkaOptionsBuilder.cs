@@ -5,7 +5,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
     public interface IKafkaOptionsBuilder
     {
         IKafkaOptionsBuilder HasConsumerGroup(
-            string name,
+            string groupId,
             Func<IConsumerGroupOptionsBuilder, IConsumerGroupOptions> options);
 
         IKafkaOptions Build();

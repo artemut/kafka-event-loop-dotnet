@@ -2,7 +2,7 @@
 {
     internal class ConsumerGroupConfig
     {
-        public string Name { get; set; }
+        public string GroupId { get; set; }
         public string ConnectionString { get; set; }
         public string TopicName { get; set; }
         public int ParallelConsumers { get; set; }
