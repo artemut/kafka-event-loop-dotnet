@@ -26,7 +26,7 @@ var host = Host.CreateDefaultBuilder(args)
                     .Build())
                 .HasConsumerGroup("bar-dead-letters-group", cgOptions => cgOptions
                     .HasMessageType<BarMessage>()
-                    .HasJsonMessageDeserializer()
+                    .HasCustomMessageDeserializer<BarDeadLettersDeserializer>()
                     .HasController<BarDeadLettersController>()
                     .Build())
                 .Build());

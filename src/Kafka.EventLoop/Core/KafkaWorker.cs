@@ -1,23 +1,23 @@
-﻿using Kafka.EventLoop.Configuration.Options;
+﻿using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.DependencyInjection;
 
 namespace Kafka.EventLoop.Core
 {
     internal class KafkaWorker<TMessage> : IKafkaWorker
     {
-        private readonly IConsumerGroupOptions _consumerGroupOptions;
+        private readonly string _consumerGroupName;
         private readonly int _consumerId;
-        private readonly IKafkaConsumerFactory _kafkaConsumerFactory;
-        private readonly IIntakeScopeFactory _intakeScopeFactory;
+        private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
+        private readonly Func<IIntakeScope<TMessage>> _intakeScopeFactory;
         private int _isRunning;
 
         public KafkaWorker(
-            IConsumerGroupOptions consumerGroupOptions,
+            string consumerGroupName,
             int consumerId,
-            IKafkaConsumerFactory kafkaConsumerFactory,
-            IIntakeScopeFactory intakeScopeFactory)
+            Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
+            Func<IIntakeScope<TMessage>> intakeScopeFactory)
         {
-            _consumerGroupOptions = consumerGroupOptions;
+            _consumerGroupName = consumerGroupName;
             _consumerId = consumerId;
             _kafkaConsumerFactory = kafkaConsumerFactory;
             _intakeScopeFactory = intakeScopeFactory;
@@ -28,7 +28,7 @@ namespace Kafka.EventLoop.Core
             if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
             {
                 throw new InvalidOperationException(
-                    $"Consumer {_consumerGroupOptions.Name}:{_consumerId} is already running");
+                    $"Consumer {_consumerGroupName}:{_consumerId} is already running");
             }
 
             // todo: error handling
@@ -39,14 +39,14 @@ namespace Kafka.EventLoop.Core
 
         private async Task RunNewConsumerAsync(CancellationToken cancellationToken)
         {
-            using var consumer = _kafkaConsumerFactory.Create<TMessage>();
+            using var consumer = _kafkaConsumerFactory();
             try
             {
                 await consumer.SubscribeAsync(cancellationToken);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    using var intakeScope = _intakeScopeFactory.CreateScope<TMessage>(_consumerGroupOptions);
+                    using var intakeScope = _intakeScopeFactory();
 
                     var messages = consumer.CollectMessages(cancellationToken);
 

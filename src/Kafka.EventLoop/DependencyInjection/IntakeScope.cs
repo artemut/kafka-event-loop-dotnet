@@ -1,27 +1,23 @@
-﻿using Kafka.EventLoop.Configuration.Options;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Kafka.EventLoop.DependencyInjection
 {
     internal sealed class IntakeScope<TMessage> : IIntakeScope<TMessage>
     {
         private readonly IServiceScope _scope;
-        private readonly IConsumerGroupOptions _consumerGroupOptions;
+        private readonly Func<IServiceProvider, IKafkaController<TMessage>> _controllerProvider;
 
-        public IntakeScope(IServiceScope scope, IConsumerGroupOptions consumerGroupOptions)
+        public IntakeScope(
+            IServiceScope scope,
+            Func<IServiceProvider, IKafkaController<TMessage>> controllerProvider)
         {
             _scope = scope;
-            _consumerGroupOptions = consumerGroupOptions;
+            _controllerProvider = controllerProvider;
         }
 
         public IKafkaController<TMessage> GetController()
         {
-            var type = _consumerGroupOptions.ControllerType;
-            if (_scope.ServiceProvider.GetRequiredService(type) is not IKafkaController<TMessage> controller)
-            {
-                throw new InvalidOperationException($"Cannot resolve controller of type {type.Name}");
-            }
-            return controller;
+            return _controllerProvider(_scope.ServiceProvider);
         }
 
         public void Dispose()

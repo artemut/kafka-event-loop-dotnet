@@ -1,9 +1,21 @@
-﻿namespace Kafka.EventLoop.Consume
+﻿using Confluent.Kafka;
+using Microsoft.Extensions.Logging;
+
+namespace Kafka.EventLoop.Consume
 {
     internal class KafkaConsumer<TMessage> : IKafkaConsumer<TMessage>
     {
-        public KafkaConsumer()
+        private readonly IDeserializer<TMessage> _deserializer;
+        private readonly ILogger<KafkaConsumer<TMessage>> _logger;
+
+        public KafkaConsumer(
+            IDeserializer<TMessage> deserializer,
+            ILogger<KafkaConsumer<TMessage>> logger)
         {
+            _deserializer = deserializer;
+            _logger = logger;
+
+            _logger.LogInformation($"Consumer uses deserializer: {_deserializer.GetType().FullName}");
         }
 
         public Task SubscribeAsync(CancellationToken cancellationToken)

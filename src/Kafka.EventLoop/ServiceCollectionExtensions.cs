@@ -15,8 +15,12 @@ namespace Kafka.EventLoop
             IConfiguration configuration,
             Func<IKafkaOptionsBuilder, IKafkaOptions> optionsAction)
         {
+            // create dependency registry
+            var registry = new DependencyRegistry();
+            var registrar = new DependencyRegistrar(services, registry);
+
             // build options
-            var optionsBuilder = new KafkaOptionsBuilder();
+            var optionsBuilder = new KafkaOptionsBuilder(registrar);
             var options = optionsAction(optionsBuilder);
             services.AddSingleton(options);
 
@@ -24,68 +28,11 @@ namespace Kafka.EventLoop
             var kafkaConfig = ConfigReader.Read(configuration);
             services.AddSingleton(kafkaConfig);
 
-            // register dependencies in IoC-container
-            foreach (var consumerGroupOptions in options.ConsumerGroups)
-            {
-                services
-                    .AddKafkaConsumer(consumerGroupOptions)
-                    .AddMessageDeserializer(consumerGroupOptions)
-                    .AddKafkaController(consumerGroupOptions);
-            }
-            services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
-            services.AddSingleton<IIntakeScopeFactory, IntakeScopeFactory>();
-            services.AddSingleton<IKafkaWorkerFactory, KafkaWorkerFactory>();
-
             // register hosted service
+            services.AddSingleton<Func<string, int, IKafkaWorker>>(
+                sp => (name, id) => registry.KafkaWorkerFactories[name](sp, id));
             services.AddHostedService<KafkaBackgroundService>();
 
-            return services;
-        }
-
-        private static IServiceCollection AddKafkaConsumer(
-            this IServiceCollection services,
-            IConsumerGroupOptions consumerGroupOptions)
-        {
-            var messageType = consumerGroupOptions.MessageType;
-            var implType = TypeResolver.BuildConsumerImplType(messageType);
-            if (services.Any(x => x.ImplementationType == implType))
-            {
-                // consumer of such type is already registered for another consumer group
-                return services;
-            }
-
-            var serviceType = TypeResolver.BuildConsumerServiceType(messageType);
-            services.AddTransient(serviceType, implType);
-            return services;
-        }
-
-        private static IServiceCollection AddMessageDeserializer(
-            this IServiceCollection services,
-            IConsumerGroupOptions consumerGroupOptions)
-        {
-            var implType = consumerGroupOptions.MessageDeserializerType;
-            if (services.Any(x => x.ImplementationType == implType))
-            {
-                // deserializer of such type is already registered for another consumer group
-                return services;
-            }
-
-            services.AddSingleton(implType);
-            return services;
-        }
-
-        private static IServiceCollection AddKafkaController(
-            this IServiceCollection services,
-            IConsumerGroupOptions consumerGroupOptions)
-        {
-            var implType = consumerGroupOptions.ControllerType;
-            if (services.Any(x => x.ImplementationType == implType))
-            {
-                // controller of such type is already registered for another consumer group
-                return services;
-            }
-            
-            services.AddScoped(implType);
             return services;
         }
     }

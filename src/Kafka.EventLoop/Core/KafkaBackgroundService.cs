@@ -1,5 +1,4 @@
 ﻿using Kafka.EventLoop.Configuration.ConfigTypes;
-using Kafka.EventLoop.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -8,12 +7,12 @@ namespace Kafka.EventLoop.Core
     internal class KafkaBackgroundService : BackgroundService
     {
         private readonly KafkaConfig _kafkaConfig;
-        private readonly IKafkaWorkerFactory _kafkaWorkerFactory;
+        private readonly Func<string, int, IKafkaWorker> _kafkaWorkerFactory;
         private readonly ILogger<KafkaBackgroundService> _logger;
 
         public KafkaBackgroundService(
             KafkaConfig kafkaConfig,
-            IKafkaWorkerFactory kafkaWorkerFactory,
+            Func<string, int, IKafkaWorker> kafkaWorkerFactory,
             ILogger<KafkaBackgroundService> logger)
         {
             _kafkaConfig = kafkaConfig;
@@ -31,7 +30,7 @@ namespace Kafka.EventLoop.Core
 
                 for (var i = 0; i < consumerGroup.ParallelConsumers; i++)
                 {
-                    var worker = _kafkaWorkerFactory.Create(consumerGroup.Name, i);
+                    var worker = _kafkaWorkerFactory(consumerGroup.Name, i);
                     workers.Add(worker);
                 }
             }

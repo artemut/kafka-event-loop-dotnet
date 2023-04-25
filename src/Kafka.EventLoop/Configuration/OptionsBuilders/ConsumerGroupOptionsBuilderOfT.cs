@@ -1,101 +1,92 @@
 ﻿using Kafka.EventLoop.Configuration.Options;
 using Confluent.Kafka;
-using Kafka.EventLoop.Conversion;
+using Kafka.EventLoop.DependencyInjection;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
     internal sealed class ConsumerGroupOptionsBuilder<TMessage> : IConsumerGroupOptionsBuilder<TMessage>
     {
         private readonly string _name;
-        private Type? _controllerType;
-        private Type? _intakeStrategyType;
-        private Type? _deserializerType;
-        private Type? _intakeObserverType;
+        private readonly IDependencyRegistrar _dependencyRegistrar;
+        private bool _hasDeserializerType;
+        private bool _hasControllerType;
 
-        public ConsumerGroupOptionsBuilder(string name)
+        public ConsumerGroupOptionsBuilder(string name, IDependencyRegistrar dependencyRegistrar)
         {
             _name = name;
+            _dependencyRegistrar = dependencyRegistrar;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasJsonMessageDeserializer()
         {
-            if (_deserializerType != null)
+            if (_hasDeserializerType)
             {
                 throw new InvalidOperationException(
                     $"Message deserializer is already configured for consumer group {_name}");
             }
-            _deserializerType = typeof(JsonDeserializer<TMessage>);
+            _dependencyRegistrar.AddJsonMessageDeserializer<TMessage>(_name);
+            _hasDeserializerType = true;
             return this;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomMessageDeserializer<TDeserializer>()
-            where TDeserializer : IDeserializer<TMessage>
+            where TDeserializer : class, IDeserializer<TMessage>
         {
-            if (_deserializerType != null)
+            if (_hasDeserializerType)
             {
                 throw new InvalidOperationException(
                     $"Message deserializer is already configured for consumer group {_name}");
             }
-            _deserializerType = typeof(TDeserializer);
+            _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_name);
+            _hasDeserializerType = true;
             return this;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasController<TController>()
-            where TController : IKafkaController<TMessage>
+            where TController : class, IKafkaController<TMessage>
         {
-            if (_controllerType != null)
+            if (_hasControllerType)
             {
                 throw new InvalidOperationException(
                     $"Controller is already configured for consumer group {_name}");
             }
-            _controllerType = typeof(TController);
+            _dependencyRegistrar.AddKafkaController<TController>(_name);
+            _hasControllerType = true;
             return this;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeStrategy<TStrategy>()
             where TStrategy : IKafkaIntakeStrategy<TMessage>
         {
-            if (_intakeStrategyType != null)
-            {
-                throw new InvalidOperationException(
-                    $"Custom intake strategy is already configured for consumer group {_name}");
-            }
-            _intakeStrategyType = typeof(TStrategy);
+            // todo:
             return this;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>
         {
-            if (_intakeObserverType != null)
-            {
-                throw new InvalidOperationException(
-                    $"Custom intake observer is already configured for consumer group {_name}");
-            }
-            _intakeObserverType = typeof(TObserver);
+            // todo:
             return this;
         }
 
         public IConsumerGroupOptions Build()
         {
-            if (_controllerType == null)
+            if (!_hasControllerType)
             {
                 throw new InvalidOperationException(
                     $"Missing controller configuration for consumer group {_name}");
             }
-            if (_deserializerType == null)
+            if (!_hasDeserializerType)
             {
                 throw new InvalidOperationException(
                     $"Missing message deserializer configuration for consumer group {_name}");
             }
 
-            return new ConsumerGroupOptions(
-                _name,
-                typeof(TMessage),
-                _deserializerType,
-                _controllerType,
-                _intakeStrategyType,
-                _intakeObserverType);
+            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_name);
+            _dependencyRegistrar.AddIntakeScope<TMessage>(_name);
+            _dependencyRegistrar.AddKafkaWorker<TMessage>(_name);
+
+            return new ConsumerGroupOptions(_name);
         }
     }
 }
