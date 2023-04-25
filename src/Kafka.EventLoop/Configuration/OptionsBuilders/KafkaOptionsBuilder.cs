@@ -1,4 +1,5 @@
-﻿using Kafka.EventLoop.Configuration.Options;
+﻿using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Configuration.Options;
 using Kafka.EventLoop.DependencyInjection;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
@@ -6,11 +7,13 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
     internal sealed class KafkaOptionsBuilder : IKafkaOptionsBuilder
     {
         private readonly IDependencyRegistrar _dependencyRegistrar;
+        private readonly KafkaConfig _kafkaConfig;
         private readonly Dictionary<string, IConsumerGroupOptions> _consumerGroups = new();
 
-        public KafkaOptionsBuilder(IDependencyRegistrar dependencyRegistrar)
+        public KafkaOptionsBuilder(IDependencyRegistrar dependencyRegistrar, KafkaConfig kafkaConfig)
         {
             _dependencyRegistrar = dependencyRegistrar;
+            _kafkaConfig = kafkaConfig;
         }
 
         public IKafkaOptionsBuilder HasConsumerGroup(
@@ -23,7 +26,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Consumer group {groupId} is already configured");
             }
 
-            var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar);
+            var consumerGroupConfig = _kafkaConfig.ConsumerGroups.SingleOrDefault(x => x.GroupId == groupId);
+            if (consumerGroupConfig == null)
+            {
+                throw new InvalidOperationException(
+                    $"No configuration found for consumer group {groupId}");
+            }
+
+            var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar, consumerGroupConfig);
             var options = optionsAction(optionsBuilder);
             _consumerGroups.Add(groupId, options);
 

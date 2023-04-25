@@ -1,5 +1,6 @@
 ﻿using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Kafka.EventLoop.Core
 {
@@ -9,18 +10,21 @@ namespace Kafka.EventLoop.Core
         private readonly int _consumerId;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
         private readonly Func<IIntakeScope<TMessage>> _intakeScopeFactory;
+        private readonly ILogger<KafkaWorker<TMessage>> _logger;
         private int _isRunning;
 
         public KafkaWorker(
             string groupId,
             int consumerId,
             Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
-            Func<IIntakeScope<TMessage>> intakeScopeFactory)
+            Func<IIntakeScope<TMessage>> intakeScopeFactory,
+            ILogger<KafkaWorker<TMessage>> logger)
         {
             _groupId = groupId;
             _consumerId = consumerId;
             _kafkaConsumerFactory = kafkaConsumerFactory;
             _intakeScopeFactory = intakeScopeFactory;
+            _logger = logger;
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -58,6 +62,11 @@ namespace Kafka.EventLoop.Core
             }
             catch (OperationCanceledException)
             {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error while running consumer {_groupId}:{_consumerId}");
+                // todo: throw;
             }
             finally
             {

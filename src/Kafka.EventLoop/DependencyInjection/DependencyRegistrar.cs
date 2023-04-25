@@ -1,4 +1,5 @@
 ﻿using Confluent.Kafka;
+using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.Conversion;
 using Kafka.EventLoop.Core;
@@ -50,9 +51,14 @@ namespace Kafka.EventLoop.DependencyInjection
                 .KafkaControllerProviders[groupId] = sp => sp.GetRequiredService<TController>();
         }
 
-        public void AddConsumerConfig(string groupId, ConsumerConfig config)
+        public void AddConsumerGroupConfig(string groupId, ConsumerGroupConfig config)
         {
-            _internalRegistry.ConsumerConfigProviders[groupId] = config;
+            _internalRegistry.ConsumerGroupConfigProviders[groupId] = config;
+        }
+
+        public void AddConfluentConsumerConfig(string groupId, ConsumerConfig config)
+        {
+            _internalRegistry.ConfluentConsumerConfigProviders[groupId] = config;
         }
 
         public void AddKafkaConsumer<TMessage>(string groupId)
@@ -60,6 +66,7 @@ namespace Kafka.EventLoop.DependencyInjection
             _internalRegistry.KafkaConsumerFactories[groupId] = sp =>
                 new KafkaConsumer<TMessage>(
                     BuildConfluentConsumer<TMessage>(groupId, sp),
+                    _internalRegistry.ConsumerGroupConfigProviders[groupId],
                     sp.GetRequiredService<ILogger<KafkaConsumer<TMessage>>>());
         }
 
@@ -78,19 +85,21 @@ namespace Kafka.EventLoop.DependencyInjection
                     groupId,
                     consumerId,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp),
-                    () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp));
+                    () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp),
+                    sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
         }
 
         private IConsumer<Ignore, TMessage> BuildConfluentConsumer<TMessage>(
             string groupId,
             IServiceProvider serviceProvider)
         {
-            var config = _internalRegistry.ConsumerConfigProviders[groupId];
+            var config = _internalRegistry.ConfluentConsumerConfigProviders[groupId];
             var builder = new ConsumerBuilder<Ignore, TMessage>(config);
             var deserializer = (IDeserializer<TMessage>)_internalRegistry
                 .MessageDeserializerProviders[groupId](serviceProvider);
             return builder
                 .SetValueDeserializer(deserializer)
+                .SetLogHandler((_, _) => { }) // todo: consider customization
                 .Build();
         }
     }

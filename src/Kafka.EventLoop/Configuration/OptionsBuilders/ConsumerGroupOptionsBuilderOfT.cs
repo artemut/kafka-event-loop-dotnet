@@ -1,6 +1,7 @@
 ﻿using Kafka.EventLoop.Configuration.Options;
 using Confluent.Kafka;
 using Kafka.EventLoop.DependencyInjection;
+using Kafka.EventLoop.Configuration.ConfigTypes;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
@@ -8,13 +9,18 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
     {
         private readonly string _groupId;
         private readonly IDependencyRegistrar _dependencyRegistrar;
+        private readonly ConsumerGroupConfig _consumerGroupConfig;
         private bool _hasDeserializerType;
         private bool _hasControllerType;
 
-        public ConsumerGroupOptionsBuilder(string groupId, IDependencyRegistrar dependencyRegistrar)
+        public ConsumerGroupOptionsBuilder(
+            string groupId,
+            IDependencyRegistrar dependencyRegistrar,
+            ConsumerGroupConfig consumerGroupConfig)
         {
             _groupId = groupId;
             _dependencyRegistrar = dependencyRegistrar;
+            _consumerGroupConfig = consumerGroupConfig;
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasJsonMessageDeserializer()
@@ -82,12 +88,13 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Missing message deserializer configuration for consumer group {_groupId}");
             }
 
-            _dependencyRegistrar.AddConsumerConfig(_groupId, new ConsumerConfig
+            _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);
+            _dependencyRegistrar.AddConfluentConsumerConfig(_groupId, new ConsumerConfig
             {
                 GroupId = _groupId,
-                BootstrapServers = "", // todo
-                AutoOffsetReset = AutoOffsetReset.Earliest, // todo
-                EnableAutoCommit = false // todo
+                BootstrapServers = _consumerGroupConfig.ConnectionString,
+                AutoOffsetReset = _consumerGroupConfig.AutoOffsetReset,
+                EnableAutoCommit = false
             });
             _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId);
             _dependencyRegistrar.AddIntakeScope<TMessage>(_groupId);
