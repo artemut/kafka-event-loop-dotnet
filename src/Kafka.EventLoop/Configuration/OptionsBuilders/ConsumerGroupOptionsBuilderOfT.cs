@@ -82,6 +82,13 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Missing message deserializer configuration for consumer group {_name}");
             }
 
+            _dependencyRegistrar.AddConsumerConfig(_name, new ConsumerConfig
+            {
+                GroupId = _name,
+                BootstrapServers = "", // todo
+                AutoOffsetReset = AutoOffsetReset.Earliest, // todo
+                EnableAutoCommit = false // todo
+            });
             _dependencyRegistrar.AddKafkaConsumer<TMessage>(_name);
             _dependencyRegistrar.AddIntakeScope<TMessage>(_name);
             _dependencyRegistrar.AddKafkaWorker<TMessage>(_name);

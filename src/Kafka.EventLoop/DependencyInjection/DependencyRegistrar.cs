@@ -50,11 +50,16 @@ namespace Kafka.EventLoop.DependencyInjection
                 .KafkaControllerProviders[consumerGroupName] = sp => sp.GetRequiredService<TController>();
         }
 
+        public void AddConsumerConfig(string consumerGroupName, ConsumerConfig config)
+        {
+            _internalRegistry.ConsumerConfigProviders[consumerGroupName] = config;
+        }
+
         public void AddKafkaConsumer<TMessage>(string consumerGroupName)
         {
             _internalRegistry.KafkaConsumerFactories[consumerGroupName] = sp =>
                 new KafkaConsumer<TMessage>(
-                    (IDeserializer<TMessage>)_internalRegistry.MessageDeserializerProviders[consumerGroupName](sp),
+                    BuildConfluentConsumer<TMessage>(consumerGroupName, sp),
                     sp.GetRequiredService<ILogger<KafkaConsumer<TMessage>>>());
         }
 
@@ -74,6 +79,19 @@ namespace Kafka.EventLoop.DependencyInjection
                     consumerId,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[consumerGroupName](sp),
                     () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[consumerGroupName](sp));
+        }
+
+        private IConsumer<Ignore, TMessage> BuildConfluentConsumer<TMessage>(
+            string consumerGroupName,
+            IServiceProvider serviceProvider)
+        {
+            var config = _internalRegistry.ConsumerConfigProviders[consumerGroupName];
+            var builder = new ConsumerBuilder<Ignore, TMessage>(config);
+            var deserializer = (IDeserializer<TMessage>)_internalRegistry
+                .MessageDeserializerProviders[consumerGroupName](serviceProvider);
+            return builder
+                .SetValueDeserializer(deserializer)
+                .Build();
         }
     }
 }
