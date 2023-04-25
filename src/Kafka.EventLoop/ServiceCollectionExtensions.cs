@@ -29,6 +29,7 @@ namespace Kafka.EventLoop
             {
                 services
                     .AddKafkaConsumer(consumerGroupOptions)
+                    .AddMessageDeserializer(consumerGroupOptions)
                     .AddKafkaController(consumerGroupOptions);
             }
             services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
@@ -55,6 +56,21 @@ namespace Kafka.EventLoop
 
             var serviceType = TypeResolver.BuildConsumerServiceType(messageType);
             services.AddTransient(serviceType, implType);
+            return services;
+        }
+
+        private static IServiceCollection AddMessageDeserializer(
+            this IServiceCollection services,
+            IConsumerGroupOptions consumerGroupOptions)
+        {
+            var implType = consumerGroupOptions.MessageDeserializerType;
+            if (services.Any(x => x.ImplementationType == implType))
+            {
+                // deserializer of such type is already registered for another consumer group
+                return services;
+            }
+
+            services.AddSingleton(implType);
             return services;
         }
 

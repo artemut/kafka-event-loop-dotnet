@@ -9,11 +9,9 @@
             _name = name;
         }
 
-        public IConsumerGroupOptionsBuilder<TMessage> HasMessageType<TMessage>(
-            SerializationType serializationType,
-            bool ignoreExtraElements)
+        public IConsumerGroupOptionsBuilder<TMessage> HasMessageType<TMessage>()
         {
-            return new ConsumerGroupOptionsBuilder<TMessage>(_name, serializationType, ignoreExtraElements);
+            return new ConsumerGroupOptionsBuilder<TMessage>(_name);
         }
     }
 }

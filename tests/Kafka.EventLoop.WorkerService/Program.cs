@@ -1,5 +1,4 @@
 using Kafka.EventLoop;
-using Kafka.EventLoop.Configuration;
 using Kafka.EventLoop.WorkerService;
 using Kafka.EventLoop.WorkerService.Controllers;
 using Kafka.EventLoop.WorkerService.Custom;
@@ -14,17 +13,20 @@ var host = Host.CreateDefaultBuilder(args)
             ctx.Configuration,
             options => options
                 .HasConsumerGroup("foo-group", cgOptions => cgOptions
-                    .HasMessageType<FooMessage>(SerializationType.Json, true)
+                    .HasMessageType<FooMessage>()
+                    .HasCustomMessageDeserializer<FooMessageDeserializer>()
                     .HasController<FooController>()
                     .HasCustomIntakeStrategy<FooIntakeStrategy>()
                     .HasCustomIntakeObserver<FooIntakeObserver>()
                     .Build())
                 .HasConsumerGroup("bar-group", cgOptions => cgOptions
-                    .HasMessageType<BarMessage>(SerializationType.Json, true)
+                    .HasMessageType<BarMessage>()
+                    .HasJsonMessageDeserializer()
                     .HasController<BarController>()
                     .Build())
                 .HasConsumerGroup("bar-dead-letters-group", cgOptions => cgOptions
-                    .HasMessageType<BarMessage>(SerializationType.Json, true)
+                    .HasMessageType<BarMessage>()
+                    .HasJsonMessageDeserializer()
                     .HasController<BarDeadLettersController>()
                     .Build())
                 .Build());

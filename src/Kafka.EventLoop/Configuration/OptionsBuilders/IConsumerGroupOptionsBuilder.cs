@@ -2,8 +2,6 @@
 {
     public interface IConsumerGroupOptionsBuilder
     {
-        IConsumerGroupOptionsBuilder<TMessage> HasMessageType<TMessage>(
-            SerializationType serializationType,
-            bool ignoreExtraElements);
+        IConsumerGroupOptionsBuilder<TMessage> HasMessageType<TMessage>();
     }
 }

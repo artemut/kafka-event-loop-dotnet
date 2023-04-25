@@ -4,8 +4,7 @@
     {
         string Name { get; }
         Type MessageType { get; }
-        SerializationType MessageSerializationType { get; }
-        bool IgnoreMessageExtraElements { get; }
+        Type MessageDeserializerType { get; }
         Type ControllerType { get; }
         Type? IntakeStrategyType { get; }
         Type? IntakeObserverType { get; }

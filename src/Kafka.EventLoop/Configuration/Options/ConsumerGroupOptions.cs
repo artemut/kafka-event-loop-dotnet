@@ -3,8 +3,7 @@
     internal record ConsumerGroupOptions(
         string Name,
         Type MessageType,
-        SerializationType MessageSerializationType,
-        bool IgnoreMessageExtraElements,
+        Type MessageDeserializerType,
         Type ControllerType,
         Type? IntakeStrategyType,
         Type? IntakeObserverType) : IConsumerGroupOptions;
