@@ -45,6 +45,14 @@ namespace Kafka.EventLoop.Consume
 
         public Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
         {
+            var offsets = messages
+                .GroupBy(x => new TopicPartition(x.Topic, x.Partition))
+                .Select(tpGroup => new TopicPartitionOffset(
+                    tpGroup.Key,
+                    new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
+                .ToList();
+            _consumer.Commit(offsets);
+
             return Task.CompletedTask;
         }
 
