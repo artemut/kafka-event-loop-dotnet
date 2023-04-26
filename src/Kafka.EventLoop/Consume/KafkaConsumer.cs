@@ -30,8 +30,17 @@ namespace Kafka.EventLoop.Consume
 
         public MessageInfo<TMessage>[] CollectMessages(CancellationToken cancellationToken)
         {
-            Task.Delay(new Random().Next(1000, 5000), cancellationToken).Wait(cancellationToken);
-            return Array.Empty<MessageInfo<TMessage>>();
+            var messages = new List<MessageInfo<TMessage>>();
+
+            var result = _consumer.Consume(cancellationToken);
+            messages.Add(new MessageInfo<TMessage>(
+                result.Message.Value,
+                result.Message.Timestamp.UtcDateTime,
+                result.Topic,
+                result.Partition,
+                result.Offset));
+            
+            return messages.ToArray();
         }
 
         public Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)

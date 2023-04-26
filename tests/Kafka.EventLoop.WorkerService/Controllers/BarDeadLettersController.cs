@@ -13,7 +13,10 @@ namespace Kafka.EventLoop.WorkerService.Controllers
 
         public Task ProcessAsync(MessageInfo<BarMessage>[] messages, CancellationToken token)
         {
-            _logger.LogInformation("\tBarDeadLettersController.ProcessAsync");
+            foreach (var messageInfo in messages)
+            {
+                _logger.LogInformation($"Processing bar dead message with key {messageInfo.Value.Key} ({messageInfo.Value.Extra})");
+            }
             return Task.CompletedTask;
         }
     }

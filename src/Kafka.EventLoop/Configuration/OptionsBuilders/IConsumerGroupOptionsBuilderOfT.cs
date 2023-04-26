@@ -8,7 +8,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasJsonMessageDeserializer();
 
         IConsumerGroupOptionsBuilder<TMessage> HasCustomMessageDeserializer<TDeserializer>()
-            where TDeserializer : class, IDeserializer<TMessage>;
+            where TDeserializer : class, IDeserializer<TMessage?>;
 
         IConsumerGroupOptionsBuilder<TMessage> HasController<TController>()
             where TController : class, IKafkaController<TMessage>;

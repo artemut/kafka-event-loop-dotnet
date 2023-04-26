@@ -13,7 +13,10 @@ namespace Kafka.EventLoop.WorkerService.Controllers
 
         public Task ProcessAsync(MessageInfo<FooMessage>[] messages, CancellationToken token)
         {
-            _logger.LogInformation("\tFooController.ProcessAsync");
+            foreach (var messageInfo in messages)
+            {
+                _logger.LogInformation($"Processing foo message with key {messageInfo.Value.Key}");
+            }
             return Task.CompletedTask;
         }
     }
