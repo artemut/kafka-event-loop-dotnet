@@ -1,6 +1,6 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
-using Microsoft.Extensions.Logging;
+using Kafka.EventLoop.Utils;
 
 namespace Kafka.EventLoop.Consume
 {
@@ -8,24 +8,26 @@ namespace Kafka.EventLoop.Consume
     {
         private readonly IConsumer<Ignore, TMessage> _consumer;
         private readonly ConsumerGroupConfig _consumerGroupConfig;
-        private readonly ILogger<KafkaConsumer<TMessage>> _logger;
+        private readonly ITimeoutRunner _timeoutRunner;
 
         public KafkaConsumer(
             IConsumer<Ignore, TMessage> consumer,
             ConsumerGroupConfig consumerGroupConfig,
-            ILogger<KafkaConsumer<TMessage>> logger)
+            ITimeoutRunner timeoutRunner)
         {
             _consumer = consumer;
             _consumerGroupConfig = consumerGroupConfig;
-            _logger = logger;
+            _timeoutRunner = timeoutRunner;
         }
 
         public Task SubscribeAsync(CancellationToken cancellationToken)
         {
-            _consumer.Subscribe(_consumerGroupConfig.TopicName);
-            _logger.LogInformation($"Subscribed to topic {_consumerGroupConfig.TopicName}");
-
-            return Task.CompletedTask;
+            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            return _timeoutRunner.RunAsync(
+                () => _consumer.Subscribe(_consumerGroupConfig.TopicName),
+                timeout,
+                $"Wasn't able to subscribe to the topic {_consumerGroupConfig.TopicName} within configured timeout {timeout}",
+                cancellationToken);
         }
 
         public MessageInfo<TMessage>[] CollectMessages(CancellationToken cancellationToken)
@@ -51,17 +53,23 @@ namespace Kafka.EventLoop.Consume
                     tpGroup.Key,
                     new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
                 .ToList();
-            _consumer.Commit(offsets);
 
-            return Task.CompletedTask;
+            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            return _timeoutRunner.RunAsync(
+                () => _consumer.Commit(offsets),
+                timeout,
+                $"Wasn't able to commit offsets after configured timeout {timeout}",
+                cancellationToken);
         }
 
         public Task CloseAsync(CancellationToken cancellationToken)
         {
-            _consumer.Close();
-            _logger.LogInformation($"Disconnected from the topic {_consumerGroupConfig.TopicName}");
-
-            return Task.CompletedTask;
+            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            return _timeoutRunner.RunAsync(
+                () => _consumer.Close(),
+                timeout,
+                $"Wasn't able to close the client after configured timeout {timeout}",
+                cancellationToken);
         }
 
         public void Dispose()

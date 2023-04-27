@@ -3,6 +3,7 @@ using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.Conversion;
 using Kafka.EventLoop.Core;
+using Kafka.EventLoop.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -67,7 +68,7 @@ namespace Kafka.EventLoop.DependencyInjection
                 new KafkaConsumer<TMessage>(
                     BuildConfluentConsumer<TMessage>(groupId, sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId],
-                    sp.GetRequiredService<ILogger<KafkaConsumer<TMessage>>>());
+                    new TimeoutRunner());
         }
 
         public void AddIntakeScope<TMessage>(string groupId)
