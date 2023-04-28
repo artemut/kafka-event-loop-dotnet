@@ -1,5 +1,6 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Exceptions;
 using Kafka.EventLoop.Utils;
 
 namespace Kafka.EventLoop.Consume
@@ -20,14 +21,23 @@ namespace Kafka.EventLoop.Consume
             _timeoutRunner = timeoutRunner;
         }
 
-        public Task SubscribeAsync(CancellationToken cancellationToken)
+        public async Task SubscribeAsync(CancellationToken cancellationToken)
         {
             var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
-            return _timeoutRunner.RunAsync(
-                () => _consumer.Subscribe(_consumerGroupConfig.TopicName),
-                timeout,
-                $"Wasn't able to subscribe to the topic {_consumerGroupConfig.TopicName} within configured timeout {timeout}",
-                cancellationToken);
+            try
+            {
+                await _timeoutRunner.RunAsync(
+                    () => _consumer.Subscribe(_consumerGroupConfig.TopicName),
+                    timeout,
+                    $"Wasn't able to subscribe to the topic {_consumerGroupConfig.TopicName} within configured timeout {timeout}",
+                    cancellationToken);
+            }
+            catch (KafkaException ex)
+            {
+                throw new ConnectivityException(
+                    $"Error while subscribing to the topic {_consumerGroupConfig.TopicName}: {ex.Error.Code}",
+                    ex.Error.IsFatal, ex);
+            }
         }
 
         public MessageInfo<TMessage>[] CollectMessages(
@@ -55,6 +65,12 @@ namespace Kafka.EventLoop.Consume
                             break;
                     }
                 }
+                catch (ConsumeException ex)
+                {
+                    throw new ConnectivityException(
+                        $"Error while consuming messages from kafka: {ex.Error.Code}",
+                        ex.Error.IsFatal, ex);
+                }
                 catch (OperationCanceledException) when (intakeStrategy.Token.IsCancellationRequested)
                 {
                 }
@@ -66,16 +82,25 @@ namespace Kafka.EventLoop.Consume
         public async Task<List<TopicPartition>> GetCurrentAssignmentAsync(CancellationToken cancellationToken)
         {
             var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
-            List<TopicPartition>? assignment = null;
-            await _timeoutRunner.RunAsync(
-                () => assignment = _consumer.Assignment,
-                timeout,
-                $"Wasn't able to get current consumer assignment within configured timeout {timeout}",
-                cancellationToken);
-            return assignment ?? new List<TopicPartition>();
+            try
+            {
+                List<TopicPartition>? assignment = null;
+                await _timeoutRunner.RunAsync(
+                    () => assignment = _consumer.Assignment,
+                    timeout,
+                    $"Wasn't able to get current consumer assignment within configured timeout {timeout}",
+                    cancellationToken);
+                return assignment ?? new List<TopicPartition>();
+            }
+            catch (KafkaException ex)
+            {
+                throw new ConnectivityException(
+                    $"Error while getting consumer assignment: {ex.Error.Code}",
+                    ex.Error.IsFatal, ex);
+            }
         }
 
-        public Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
+        public async Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
         {
             var offsets = messages
                 .GroupBy(x => new TopicPartition(x.Topic, x.Partition))
@@ -85,21 +110,39 @@ namespace Kafka.EventLoop.Consume
                 .ToList();
 
             var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
-            return _timeoutRunner.RunAsync(
-                () => _consumer.Commit(offsets),
-                timeout,
-                $"Wasn't able to commit offsets within configured timeout {timeout}",
-                cancellationToken);
+            try
+            {
+                await _timeoutRunner.RunAsync(
+                    () => _consumer.Commit(offsets),
+                    timeout,
+                    $"Wasn't able to commit offsets within configured timeout {timeout}",
+                    cancellationToken);
+            }
+            catch (KafkaException ex)
+            {
+                throw new ConnectivityException(
+                    $"Error while committing offsets to kafka: {ex.Error.Code}",
+                    ex.Error.IsFatal, ex);
+            }
         }
 
-        public Task CloseAsync(CancellationToken cancellationToken)
+        public async Task CloseAsync(CancellationToken cancellationToken)
         {
             var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
-            return _timeoutRunner.RunAsync(
-                () => _consumer.Close(),
-                timeout,
-                $"Wasn't able to close the client within configured timeout {timeout}",
-                cancellationToken);
+            try
+            {
+                await _timeoutRunner.RunAsync(
+                    () => _consumer.Close(),
+                    timeout,
+                    $"Wasn't able to close the client within configured timeout {timeout}",
+                    cancellationToken);
+            }
+            catch (KafkaException ex)
+            {
+                throw new ConnectivityException(
+                    $"Error while closing kafka consumer: {ex.Error.Code}",
+                    ex.Error.IsFatal, ex);
+            }
         }
 
         public void Dispose()

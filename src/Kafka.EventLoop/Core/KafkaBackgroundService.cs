@@ -26,7 +26,9 @@ namespace Kafka.EventLoop.Core
             foreach (var consumerGroup in _kafkaConfig.ConsumerGroups)
             {
                 _logger.LogInformation(
-                    $"Starting {consumerGroup.ParallelConsumers} consumers for consumer group {consumerGroup.GroupId}");
+                    "Starting {ParallelConsumers} consumers for consumer group {GroupId}",
+                    consumerGroup.ParallelConsumers,
+                    consumerGroup.GroupId);
 
                 for (var i = 0; i < consumerGroup.ParallelConsumers; i++)
                 {

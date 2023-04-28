@@ -40,8 +40,9 @@ namespace Kafka.EventLoop.DependencyInjection
             {
                 _externalRegistry.AddTransient<TDeserializer>();
             }
-            _internalRegistry
-                .MessageDeserializerProviders[groupId] = sp => sp.GetRequiredService<TDeserializer>();
+            _internalRegistry.MessageDeserializerProviders[groupId] = 
+                sp => sp.GetOrThrow<TDeserializer>(
+                    $"Error in custom message deserialization for consumer group {groupId}");
         }
 
         public void AddFixedSizeIntakeStrategy<TMessage>(string groupId, FixedSizeIntakeStrategyConfig config)
@@ -68,8 +69,9 @@ namespace Kafka.EventLoop.DependencyInjection
             {
                 _externalRegistry.AddScoped<TStrategy>();
             }
-            _internalRegistry
-                .KafkaIntakeStrategyFactories[groupId] = sp => sp.GetRequiredService<TStrategy>();
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+                sp => sp.GetOrThrow<TStrategy>(
+                    $"Error in custom intake strategy for consumer group {groupId}");
         }
 
         public void AddDefaultIntakeThrottle(string groupId, IntakeConfig? intakeConfig)
@@ -84,8 +86,9 @@ namespace Kafka.EventLoop.DependencyInjection
             {
                 _externalRegistry.AddScoped<TThrottle>();
             }
-            _internalRegistry
-                .KafkaIntakeThrottleFactories[groupId] = sp => sp.GetRequiredService<TThrottle>();
+            _internalRegistry.KafkaIntakeThrottleFactories[groupId] = 
+                sp => sp.GetOrThrow<TThrottle>(
+                    $"Error in custom intake throttle for consumer group {groupId}");
         }
 
         public void AddKafkaController<TController>(string groupId) where TController : class
@@ -94,8 +97,9 @@ namespace Kafka.EventLoop.DependencyInjection
             {
                 _externalRegistry.AddScoped<TController>();
             }
-            _internalRegistry
-                .KafkaControllerProviders[groupId] = sp => sp.GetRequiredService<TController>();
+            _internalRegistry.KafkaControllerProviders[groupId] = 
+                sp => sp.GetOrThrow<TController>(
+                    $"Error in message processing for consumer group {groupId}");
         }
 
         public void AddConsumerGroupConfig(string groupId, ConsumerGroupConfig config)
@@ -133,6 +137,7 @@ namespace Kafka.EventLoop.DependencyInjection
                 new KafkaWorker<TMessage>(
                     groupId,
                     consumerId,
+                    _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp),
                     () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
@@ -146,9 +151,10 @@ namespace Kafka.EventLoop.DependencyInjection
             var builder = new ConsumerBuilder<Ignore, TMessage>(config);
             var deserializer = (IDeserializer<TMessage>)_internalRegistry
                 .MessageDeserializerProviders[groupId](serviceProvider);
+            var logger = serviceProvider.GetRequiredService<ILogger<IConsumer<Ignore, TMessage>>>();
             return builder
                 .SetValueDeserializer(deserializer)
-                .SetLogHandler((_, _) => { }) // todo: consider customization
+                .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
                 .Build();
         }
     }

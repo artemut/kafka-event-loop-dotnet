@@ -16,7 +16,7 @@
 
             if (firstTask != actionTask)
             {
-                throw new Exception(errorMessage);
+                throw new TimeoutException(errorMessage);
             }
         }
     }

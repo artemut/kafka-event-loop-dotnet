@@ -54,7 +54,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
             if (string.IsNullOrWhiteSpace(config.GroupId))
             {
                 throw new ConfigValidationException(
-                    $"{config.GroupId}:{nameof(config.GroupId)}", "Value must be provided");
+                    $"{index}:{nameof(config.GroupId)}", "Value must be provided");
             }
             if (string.IsNullOrWhiteSpace(config.ConnectionString))
             {
@@ -190,25 +190,10 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
                 return;
-            if (config.RestartConsumerAfterMs.HasValue && config.DeadLettering != null)
-            {
-                throw new ConfigValidationException(
-                    "", $"Please specify either {nameof(config.RestartConsumerAfterMs)} " +
-                        $"or {nameof(config.DeadLettering)}");
-            }
-            if (config.RestartConsumerAfterMs is <= 0)
+            if (config.RestartConsumerAfterMs is not > 0)
             {
                 throw new ConfigValidationException(
                     nameof(config.RestartConsumerAfterMs), "Value must be greater than 0");
-            }
-            try
-            {
-                Validate(config.DeadLettering);
-            }
-            catch (ConfigValidationException ex)
-            {
-                throw new ConfigValidationException(
-                    $"{nameof(config.DeadLettering)}:{ex.PropertyName}", ex.Message);
             }
         }
 
