@@ -52,6 +52,7 @@ namespace Kafka.EventLoop.Core
                 {
                     using var intakeScope = _intakeScopeFactory();
                     using var intakeStrategy = intakeScope.CreateIntakeStrategy();
+                    var intakeThrottle = intakeScope.CreateIntakeThrottle();
 
                     var messages = consumer.CollectMessages(intakeStrategy, cancellationToken);
                     if (!messages.Any())
@@ -59,10 +60,15 @@ namespace Kafka.EventLoop.Core
                         continue;
                     }
 
+                    var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
+
                     var controller = intakeScope.GetController();
                     await controller.ProcessAsync(messages, cancellationToken);
 
                     await consumer.CommitAsync(messages, cancellationToken);
+
+                    var throttleOptions = new ThrottleOptions(assignment.Count, messages.Length);
+                    await intakeThrottle.WaitAsync(throttleOptions, cancellationToken);
                 }
             }
             catch (OperationCanceledException)

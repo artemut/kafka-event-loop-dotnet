@@ -13,6 +13,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeStrategy<TStrategy>()
             where TStrategy : class, IKafkaIntakeStrategy<TMessage>;
 
+        IConsumerGroupOptionsBuilder<TMessage> HasCustomThrottle<TThrottle>()
+            where TThrottle : class, IKafkaIntakeThrottle;
+
         IConsumerGroupOptionsBuilder<TMessage> HasController<TController>()
             where TController : class, IKafkaController<TMessage>;
 

@@ -24,6 +24,7 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasCustomMessageDeserializer<FooMessageDeserializer>()
                     .HasController<FooController>()
                     .HasCustomIntakeStrategy<FooIntakeStrategy>()
+                    .HasCustomThrottle<FooIntakeThrottle>()
                     .HasCustomIntakeObserver<FooIntakeObserver>()
                     .Build())
                 .HasConsumerGroup("bar-group", cgOptions => cgOptions

@@ -12,6 +12,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly ConsumerGroupConfig _consumerGroupConfig;
         private bool _hasDeserializerType;
+        private bool _hasCustomIntakeThrottleType;
         private bool _hasCustomIntakeStrategyType;
         private bool _hasControllerType;
 
@@ -70,6 +71,19 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
+        public IConsumerGroupOptionsBuilder<TMessage> HasCustomThrottle<TThrottle>()
+            where TThrottle : class, IKafkaIntakeThrottle
+        {
+            if (_hasCustomIntakeThrottleType)
+            {
+                throw new InvalidOperationException(
+                    $"Custom intake throttle is already configured for consumer group {_groupId}");
+            }
+            _dependencyRegistrar.AddCustomIntakeThrottle<TThrottle>(_groupId);
+            _hasCustomIntakeThrottleType = true;
+            return this;
+        }
+
         public IConsumerGroupOptionsBuilder<TMessage> HasController<TController>()
             where TController : class, IKafkaController<TMessage>
         {
@@ -112,6 +126,10 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOperationException(
                     $"Custom intake strategy must be provided for consumer group {_groupId} " +
                     "or a default intake strategy should be configured in the settings");
+            }
+            if (!_hasCustomIntakeThrottleType)
+            {
+                _dependencyRegistrar.AddDefaultIntakeThrottle(_groupId, _consumerGroupConfig.Intake);
             }
             if (!_hasControllerType)
             {

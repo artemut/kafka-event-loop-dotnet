@@ -63,6 +63,18 @@ namespace Kafka.EventLoop.Consume
             return messages.ToArray();
         }
 
+        public async Task<List<TopicPartition>> GetCurrentAssignmentAsync(CancellationToken cancellationToken)
+        {
+            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            List<TopicPartition>? assignment = null;
+            await _timeoutRunner.RunAsync(
+                () => assignment = _consumer.Assignment,
+                timeout,
+                $"Wasn't able to get current consumer assignment within configured timeout {timeout}",
+                cancellationToken);
+            return assignment ?? new List<TopicPartition>();
+        }
+
         public Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
         {
             var offsets = messages
@@ -76,7 +88,7 @@ namespace Kafka.EventLoop.Consume
             return _timeoutRunner.RunAsync(
                 () => _consumer.Commit(offsets),
                 timeout,
-                $"Wasn't able to commit offsets after configured timeout {timeout}",
+                $"Wasn't able to commit offsets within configured timeout {timeout}",
                 cancellationToken);
         }
 
@@ -86,7 +98,7 @@ namespace Kafka.EventLoop.Consume
             return _timeoutRunner.RunAsync(
                 () => _consumer.Close(),
                 timeout,
-                $"Wasn't able to close the client after configured timeout {timeout}",
+                $"Wasn't able to close the client within configured timeout {timeout}",
                 cancellationToken);
         }
 

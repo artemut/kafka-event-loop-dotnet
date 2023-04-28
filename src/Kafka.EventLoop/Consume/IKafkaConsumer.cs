@@ -1,4 +1,6 @@
-﻿namespace Kafka.EventLoop.Consume
+﻿using Confluent.Kafka;
+
+namespace Kafka.EventLoop.Consume
 {
     internal interface IKafkaConsumer<TMessage> : IDisposable
     {
@@ -7,6 +9,8 @@
         MessageInfo<TMessage>[] CollectMessages(
             IKafkaIntakeStrategy<TMessage> intakeStrategy,
             CancellationToken cancellationToken);
+
+        Task<List<TopicPartition>> GetCurrentAssignmentAsync(CancellationToken cancellationToken);
 
         Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken);
 
