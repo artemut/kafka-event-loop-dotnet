@@ -2,7 +2,7 @@
 {
     internal class DeadLetteringConfig
     {
-        public string ConnectionString { get; set; }
-        public string TopicName { get; set; }
+        public string ConnectionString { get; set; } = null!;
+        public string TopicName { get; set; } = null!;
     }
 }

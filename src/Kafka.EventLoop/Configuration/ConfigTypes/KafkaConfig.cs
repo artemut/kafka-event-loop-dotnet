@@ -2,6 +2,6 @@
 {
     internal class KafkaConfig
     {
-        public ConsumerGroupConfig[] ConsumerGroups { get; set; }
+        public ConsumerGroupConfig[] ConsumerGroups { get; set; } = null!;
     }
 }

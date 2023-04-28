@@ -2,9 +2,7 @@
 {
     internal class ErrorHandlingConfig
     {
-        public TransientErrorHandlingConfig Transient { get; set; } = TransientErrorHandlingConfig.Default;
-        public CriticalErrorHandlingConfig Critical { get; set; } = CriticalErrorHandlingConfig.Default;
-
-        public static ErrorHandlingConfig Default => new();
+        public TransientErrorHandlingConfig? Transient { get; set; }
+        public CriticalErrorHandlingConfig? Critical { get; set; }
     }
 }

@@ -53,7 +53,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeStrategy<TStrategy>()
             where TStrategy : class, IKafkaIntakeStrategy<TMessage>
         {
-            if (_consumerGroupConfig.Intake.Strategy?.IsDefault() == true)
+            if (_consumerGroupConfig.Intake?.Strategy?.IsDefault() == true)
             {
                 throw new InvalidOperationException(
                     $"Cannot use custom intake strategy because consumer group {_groupId} " +
@@ -92,7 +92,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
         public IConsumerGroupOptions Build()
         {
-            if (_consumerGroupConfig.Intake.Strategy?.IsDefault() == true)
+            if (_consumerGroupConfig.Intake?.Strategy?.IsDefault() == true)
             {
                 switch (_consumerGroupConfig.Intake.Strategy)
                 {

@@ -1,24 +1,23 @@
 ﻿using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume.IntakeStrategies;
-using Kafka.EventLoop.Exceptions;
 using Microsoft.Extensions.Configuration;
 
 namespace Kafka.EventLoop.Configuration.Helpers
 {
     internal static class ConfigReader
     {
-        private const string KafkaSectionName = "Kafka";
+        public const string KafkaSectionName = "Kafka";
 
         public static KafkaConfig Read(IConfiguration configuration)
         {
-            // todo: add validation
-
             var section = configuration.GetSection(KafkaSectionName);
-            var kafkaConfig = section.Get<KafkaConfig>();
+            var kafkaConfig = section.Get<KafkaConfig?>();
+            
+            ConfigValidator.Validate(kafkaConfig);
 
-            InitializeIntakeStrategies(kafkaConfig, configuration);
+            InitializeIntakeStrategies(kafkaConfig!, configuration);
 
-            return kafkaConfig;
+            return kafkaConfig!;
         }
 
         private static void InitializeIntakeStrategies(KafkaConfig kafkaConfig, IConfiguration configuration)
@@ -28,7 +27,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
                 var consumerGroup = kafkaConfig.ConsumerGroups[i];
                 var groupId = consumerGroup.GroupId;
                 
-                if (consumerGroup.Intake.Strategy == null)
+                if (consumerGroup.Intake?.Strategy == null)
                     continue;
 
                 var strategyName = consumerGroup.Intake.Strategy.Name;
@@ -40,21 +39,15 @@ namespace Kafka.EventLoop.Configuration.Helpers
                           $"{nameof(IntakeConfig.Strategy)}";
                 var section = configuration.GetSection(key);
 
-                try
+                consumerGroup.Intake.Strategy = strategyName switch
                 {
-                    consumerGroup.Intake.Strategy = strategyName switch
-                    {
-                        DefaultIntakeStrategyNames.FixedSize => section.Get<FixedSizeIntakeStrategyConfig>().AsValid(),
-                        DefaultIntakeStrategyNames.FixedInterval => section.Get<FixedIntervalIntakeStrategyConfig>().AsValid(),
-                        DefaultIntakeStrategyNames.MaxSizeWithTimeout => section.Get<MaxSizeWithTimeoutIntakeStrategyConfig>().AsValid(),
-                        _ => consumerGroup.Intake.Strategy
-                    };
-                }
-                catch (ConfigValidationException ex)
-                {
-                    var readableKey = key.Replace($":{i}:", $":{groupId}:");
-                    throw new ConfigValidationException($"{readableKey}:{ex.PropertyName}", ex.Message);
-                }
+                    DefaultIntakeStrategyNames.FixedSize => section.Get<FixedSizeIntakeStrategyConfig>(),
+                    DefaultIntakeStrategyNames.FixedInterval => section.Get<FixedIntervalIntakeStrategyConfig>(),
+                    DefaultIntakeStrategyNames.MaxSizeWithTimeout => section.Get<MaxSizeWithTimeoutIntakeStrategyConfig>(),
+                    _ => consumerGroup.Intake.Strategy
+                };
+
+                ConfigValidator.Validate(consumerGroup.Intake.Strategy, groupId);
             }
         }
     }
