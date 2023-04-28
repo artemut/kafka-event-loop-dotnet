@@ -4,7 +4,9 @@
     {
         Task SubscribeAsync(CancellationToken cancellationToken);
 
-        MessageInfo<TMessage>[] CollectMessages(CancellationToken cancellationToken);
+        MessageInfo<TMessage>[] CollectMessages(
+            IKafkaIntakeStrategy<TMessage> intakeStrategy,
+            CancellationToken cancellationToken);
 
         Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken);
 

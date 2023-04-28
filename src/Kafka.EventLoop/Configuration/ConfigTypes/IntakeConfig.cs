@@ -3,6 +3,6 @@
     internal class IntakeConfig
     {
         public int? MaxSpeed { get; set; }
-        public IntakeStrategyConfig Strategy { get; set; }
+        public IntakeStrategyConfig? Strategy { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using Confluent.Kafka;
 using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Configuration.Helpers;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
@@ -11,6 +12,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly ConsumerGroupConfig _consumerGroupConfig;
         private bool _hasDeserializerType;
+        private bool _hasCustomIntakeStrategyType;
         private bool _hasControllerType;
 
         public ConsumerGroupOptionsBuilder(
@@ -36,7 +38,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomMessageDeserializer<TDeserializer>()
-            where TDeserializer : class, IDeserializer<TMessage>
+            where TDeserializer : class, IDeserializer<TMessage?>
         {
             if (_hasDeserializerType)
             {
@@ -45,6 +47,26 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
             _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_groupId);
             _hasDeserializerType = true;
+            return this;
+        }
+
+        public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeStrategy<TStrategy>()
+            where TStrategy : class, IKafkaIntakeStrategy<TMessage>
+        {
+            if (_consumerGroupConfig.Intake.Strategy?.IsDefault() == true)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot use custom intake strategy because consumer group {_groupId} " +
+                    $"is configured with default intake strategy: {_consumerGroupConfig.Intake.Strategy.Name}. " +
+                    "Either remove default strategy from the settings or do not use custom intake strategy.");
+            }
+            if (_hasCustomIntakeStrategyType)
+            {
+                throw new InvalidOperationException(
+                    $"Custom intake strategy is already configured for consumer group {_groupId}");
+            }
+            _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy>(_groupId);
+            _hasCustomIntakeStrategyType = true;
             return this;
         }
 
@@ -61,13 +83,6 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
-        public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeStrategy<TStrategy>()
-            where TStrategy : IKafkaIntakeStrategy<TMessage>
-        {
-            // todo:
-            return this;
-        }
-
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>
         {
@@ -77,6 +92,27 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
         public IConsumerGroupOptions Build()
         {
+            if (_consumerGroupConfig.Intake.Strategy?.IsDefault() == true)
+            {
+                switch (_consumerGroupConfig.Intake.Strategy)
+                {
+                    case FixedSizeIntakeStrategyConfig config:
+                        _dependencyRegistrar.AddFixedSizeIntakeStrategy<TMessage>(_groupId, config);
+                        break;
+                    case FixedIntervalIntakeStrategyConfig config:
+                        _dependencyRegistrar.AddFixedIntervalIntakeStrategy<TMessage>(_groupId, config);
+                        break;
+                    case MaxSizeWithTimeoutIntakeStrategyConfig config:
+                        _dependencyRegistrar.AddMaxSizeWithTimeoutIntakeStrategy<TMessage>(_groupId, config);
+                        break;
+                }
+            }
+            else if (!_hasCustomIntakeStrategyType)
+            {
+                throw new InvalidOperationException(
+                    $"Custom intake strategy must be provided for consumer group {_groupId} " +
+                    "or a default intake strategy should be configured in the settings");
+            }
             if (!_hasControllerType)
             {
                 throw new InvalidOperationException(

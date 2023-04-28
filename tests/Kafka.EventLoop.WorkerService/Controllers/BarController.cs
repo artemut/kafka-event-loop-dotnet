@@ -13,10 +13,10 @@ namespace Kafka.EventLoop.WorkerService.Controllers
 
         public Task ProcessAsync(MessageInfo<BarMessage>[] messages, CancellationToken token)
         {
-            foreach (var messageInfo in messages)
-            {
-                _logger.LogInformation($"Processing bar message with key {messageInfo.Value.Key}");
-            }
+            _logger.LogInformation(
+                $"Received {messages.Length} bar messages:{Environment.NewLine}" +
+                $"{string.Join(Environment.NewLine, messages.Select(x => x.Value.Key))}");
+
             return Task.CompletedTask;
         }
     }

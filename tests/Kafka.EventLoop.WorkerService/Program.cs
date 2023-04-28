@@ -7,6 +7,10 @@ using Kafka.EventLoop.WorkerService.Produce;
 using Microsoft.Extensions.Options;
 
 var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration(ctx =>
+    {
+        ctx.AddEnvironmentVariables("KafkaEventLoopTests__");
+    })
     .ConfigureServices((ctx, services) =>
     {
         services.Configure<TestSettings>(ctx.Configuration.GetSection("TestSettings"));

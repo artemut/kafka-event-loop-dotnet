@@ -37,7 +37,7 @@ namespace Kafka.EventLoop.Core
 
             // todo: error handling
             await RunNewConsumerAsync(cancellationToken);
-
+            
             _isRunning = 0;
         }
 
@@ -51,8 +51,13 @@ namespace Kafka.EventLoop.Core
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     using var intakeScope = _intakeScopeFactory();
+                    using var intakeStrategy = intakeScope.CreateIntakeStrategy();
 
-                    var messages = consumer.CollectMessages(cancellationToken);
+                    var messages = consumer.CollectMessages(intakeStrategy, cancellationToken);
+                    if (!messages.Any())
+                    {
+                        continue;
+                    }
 
                     var controller = intakeScope.GetController();
                     await controller.ProcessAsync(messages, cancellationToken);

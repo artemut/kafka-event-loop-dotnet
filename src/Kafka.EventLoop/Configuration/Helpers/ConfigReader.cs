@@ -1,4 +1,6 @@
 ﻿using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Consume.IntakeStrategies;
+using Kafka.EventLoop.Exceptions;
 using Microsoft.Extensions.Configuration;
 
 namespace Kafka.EventLoop.Configuration.Helpers
@@ -24,6 +26,11 @@ namespace Kafka.EventLoop.Configuration.Helpers
             for (var i = 0; i < kafkaConfig.ConsumerGroups.Length; i++)
             {
                 var consumerGroup = kafkaConfig.ConsumerGroups[i];
+                var groupId = consumerGroup.GroupId;
+                
+                if (consumerGroup.Intake.Strategy == null)
+                    continue;
+
                 var strategyName = consumerGroup.Intake.Strategy.Name;
 
                 var key = $"{KafkaSectionName}:" +
@@ -31,14 +38,23 @@ namespace Kafka.EventLoop.Configuration.Helpers
                           $"{i}:" +
                           $"{nameof(ConsumerGroupConfig.Intake)}:" +
                           $"{nameof(IntakeConfig.Strategy)}";
+                var section = configuration.GetSection(key);
 
-                consumerGroup.Intake.Strategy = strategyName switch
+                try
                 {
-                    "FixedSize" => configuration.GetSection(key).Get<FixedSizeIntakeStrategyConfig>(),
-                    "FixedInterval" => configuration.GetSection(key).Get<FixedIntervalIntakeStrategyConfig>(),
-                    "MaxSizeWithTimeout" => configuration.GetSection(key).Get<MaxSizeWithTimeoutIntakeStrategyConfig>(),
-                    _ => consumerGroup.Intake.Strategy
-                };
+                    consumerGroup.Intake.Strategy = strategyName switch
+                    {
+                        DefaultIntakeStrategyNames.FixedSize => section.Get<FixedSizeIntakeStrategyConfig>().AsValid(),
+                        DefaultIntakeStrategyNames.FixedInterval => section.Get<FixedIntervalIntakeStrategyConfig>().AsValid(),
+                        DefaultIntakeStrategyNames.MaxSizeWithTimeout => section.Get<MaxSizeWithTimeoutIntakeStrategyConfig>().AsValid(),
+                        _ => consumerGroup.Intake.Strategy
+                    };
+                }
+                catch (ConfigValidationException ex)
+                {
+                    var readableKey = key.Replace($":{i}:", $":{groupId}:");
+                    throw new ConfigValidationException($"{readableKey}:{ex.PropertyName}", ex.Message);
+                }
             }
         }
     }

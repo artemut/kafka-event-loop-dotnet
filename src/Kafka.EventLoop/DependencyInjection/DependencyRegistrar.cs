@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
+using Kafka.EventLoop.Consume.IntakeStrategies;
 using Kafka.EventLoop.Conversion;
 using Kafka.EventLoop.Core;
 using Kafka.EventLoop.Utils;
@@ -42,6 +43,34 @@ namespace Kafka.EventLoop.DependencyInjection
                 .MessageDeserializerProviders[groupId] = sp => sp.GetRequiredService<TDeserializer>();
         }
 
+        public void AddFixedSizeIntakeStrategy<TMessage>(string groupId, FixedSizeIntakeStrategyConfig config)
+        {
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+                _ => new FixedSizeIntakeStrategy<TMessage>(config.Size);
+        }
+
+        public void AddFixedIntervalIntakeStrategy<TMessage>(string groupId, FixedIntervalIntakeStrategyConfig config)
+        {
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+                _ => new FixedIntervalIntakeStrategy<TMessage>(config.IntervalInMs);
+        }
+
+        public void AddMaxSizeWithTimeoutIntakeStrategy<TMessage>(string groupId, MaxSizeWithTimeoutIntakeStrategyConfig config)
+        {
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] =
+                _ => new MaxSizeWithTimeoutIntakeStrategy<TMessage>(config.MaxSize, config.TimeoutInMs);
+        }
+
+        public void AddCustomIntakeStrategy<TStrategy>(string groupId) where TStrategy : class
+        {
+            if (_externalRegistry.All(s => s.ImplementationType != typeof(TStrategy)))
+            {
+                _externalRegistry.AddScoped<TStrategy>();
+            }
+            _internalRegistry
+                .KafkaIntakeStrategyFactories[groupId] = sp => sp.GetRequiredService<TStrategy>();
+        }
+
         public void AddKafkaController<TController>(string groupId) where TController : class
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TController)))
@@ -76,6 +105,7 @@ namespace Kafka.EventLoop.DependencyInjection
             _internalRegistry.IntakeScopeFactories[groupId] = sp =>
                 new IntakeScope<TMessage>(
                     sp.GetRequiredService<IServiceScopeFactory>().CreateScope(),
+                    scopedSp => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
                     scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }
 

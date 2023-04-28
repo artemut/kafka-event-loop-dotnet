@@ -30,18 +30,36 @@ namespace Kafka.EventLoop.Consume
                 cancellationToken);
         }
 
-        public MessageInfo<TMessage>[] CollectMessages(CancellationToken cancellationToken)
+        public MessageInfo<TMessage>[] CollectMessages(
+            IKafkaIntakeStrategy<TMessage> intakeStrategy,
+            CancellationToken cancellationToken)
         {
             var messages = new List<MessageInfo<TMessage>>();
+            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(intakeStrategy.Token, cancellationToken))
+            {
+                try
+                {
+                    while (true)
+                    {
+                        var result = _consumer.Consume(linkedCts.Token);
+                        var messageInfo = new MessageInfo<TMessage>(
+                            result.Message.Value,
+                            result.Message.Timestamp.UtcDateTime,
+                            result.Topic,
+                            result.Partition,
+                            result.Offset);
+                        messages.Add(messageInfo);
 
-            var result = _consumer.Consume(cancellationToken);
-            messages.Add(new MessageInfo<TMessage>(
-                result.Message.Value,
-                result.Message.Timestamp.UtcDateTime,
-                result.Topic,
-                result.Partition,
-                result.Offset));
-            
+                        intakeStrategy.OnNewMessageConsumed(messageInfo);
+                        if (intakeStrategy.Token.IsCancellationRequested)
+                            break;
+                    }
+                }
+                catch (OperationCanceledException) when (intakeStrategy.Token.IsCancellationRequested)
+                {
+                }
+            }
+
             return messages.ToArray();
         }
 
