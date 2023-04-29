@@ -49,6 +49,7 @@ namespace Kafka.EventLoop.Core
             while (!cancellationToken.IsCancellationRequested)
             {
                 var isRetryable = false;
+                ProcessingException<TMessage>? processingException = null;
                 try
                 {
                     await RunNewConsumerAsync(cancellationToken);
@@ -67,6 +68,16 @@ namespace Kafka.EventLoop.Core
                 {
                     _logger.LogCritical(ex, "Fatal connectivity error while running consumer {ConsumerName}", _consumerName);
                     isRetryable = false;
+                }
+                catch (ProcessingException<TMessage> ex)
+                {
+                    _logger.Log(
+                        ex.ErrorCode == ProcessingErrorCode.CriticalError ? LogLevel.Critical : LogLevel.Error,
+                        ex.InnerException,
+                        "Error while processing messages in consumer {ConsumerName} [{ErrorCode}]",
+                        _consumerName, ex.ErrorCode);
+                    isRetryable = ex.ErrorCode == ProcessingErrorCode.TransientError;
+                    processingException = ex;
                 }
                 catch (DependencyException ex)
                 {
@@ -90,10 +101,15 @@ namespace Kafka.EventLoop.Core
                     _logger.LogWarning("Restarting consumer {ConsumerName} in {Delay} ms...", _consumerName, delay);
                     await Task.Delay(delay, cancellationToken);
                 }
-                else
+                else if (processingException == null || _errorHandlingConfig?.Critical?.DeadLettering == null)
                 {
                     _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
                     return;
+                }
+                else
+                {
+                    // todo: send messages to dead letter topic
+                    throw new NotImplementedException();
                 }
             }
         }
@@ -119,8 +135,7 @@ namespace Kafka.EventLoop.Core
 
                     var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
 
-                    var controller = intakeScope.GetController();
-                    await controller.ProcessAsync(messages, cancellationToken);
+                    await ProcessMessagesAsync(intakeScope, messages, cancellationToken);
 
                     await consumer.CommitAsync(messages, cancellationToken);
 
@@ -131,6 +146,40 @@ namespace Kafka.EventLoop.Core
             finally
             {
                 await consumer.CloseAsync(cancellationToken);
+            }
+        }
+
+        private static async Task ProcessMessagesAsync(
+            IIntakeScope<TMessage> intakeScope,
+            MessageInfo<TMessage>[] messages,
+            CancellationToken cancellationToken)
+        {
+            var controller = intakeScope.GetController();
+            MessageProcessingResult result;
+            try
+            {
+                result = await controller.ProcessAsync(messages, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ProcessingException<TMessage>(ProcessingErrorCode.CriticalError, messages, ex);
+            }
+
+            switch (result)
+            {
+                case MessageProcessingResult.Success:
+                    return;
+                case MessageProcessingResult.TransientError:
+                    throw new ProcessingException<TMessage>(ProcessingErrorCode.TransientError, messages);
+                case MessageProcessingResult.CriticalError:
+                    throw new ProcessingException<TMessage>(ProcessingErrorCode.CriticalError, messages);
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(result), result, "Unknown message processing result");
             }
         }
     }
