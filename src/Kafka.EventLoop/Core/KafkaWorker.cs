@@ -113,6 +113,7 @@ namespace Kafka.EventLoop.Core
                     return;
                 }
 
+                var deadLetteringConfig = _errorHandlingConfig.Critical.DeadLettering;
                 try
                 {
                     _logger.LogWarning(
@@ -122,7 +123,7 @@ namespace Kafka.EventLoop.Core
                     var producer = _kafkaDeadLetterProducerProvider();
                     await producer.SendMessagesAsync(
                         processingException.Messages.Select(m => m.Value).ToArray(),
-                        _errorHandlingConfig.Critical.DeadLettering.SendSequentially,
+                        deadLetteringConfig.SendSequentially,
                         cancellationToken);
 
                     _logger.LogInformation(
@@ -133,8 +134,21 @@ namespace Kafka.EventLoop.Core
                 {
                     _logger.LogCritical(ex, "Dead-lettering failed for consumer {ConsumerName}", _consumerName);
 
-                    // todo: implement
-                    throw new NotImplementedException("");
+                    switch (deadLetteringConfig.OnDeadLetteringFailed)
+                    {
+                        case DeadLetteringFailStrategy.StopConsumer:
+                            _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
+                            return;
+                        case DeadLetteringFailStrategy.RestartConsumer or null:
+                        {
+                            var delay = _errorHandlingConfig?.Transient?.RestartConsumerAfterMs ?? DefaultRestartDelayInMs;
+                            _logger.LogWarning("Restarting consumer {ConsumerName} in {Delay} ms...", _consumerName, delay);
+                            await Task.Delay(delay, cancellationToken);
+                            continue;
+                        }
+                        default:
+                            throw;
+                    }
                 }
             }
         }
