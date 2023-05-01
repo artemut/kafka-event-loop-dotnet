@@ -15,9 +15,12 @@ namespace Kafka.EventLoop.DependencyInjection
         void AddCustomIntakeThrottle<TThrottle>(string groupId) where TThrottle : class;
         void AddKafkaController<TController>(string groupId) where TController : class;
         void AddConsumerGroupConfig(string groupId, ConsumerGroupConfig config);
-        void AddConfluentConsumerConfig(string groupId, ConsumerConfig config);
-        void AddKafkaConsumer<TMessage>(string groupId);
+        void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig);
         void AddIntakeScope<TMessage>(string groupId);
+        void AddDeadLetterMessageKey<TMessageKey, TMessage>(string groupId, Func<TMessage, TMessageKey> messageKeyProvider);
+        void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId);
+        void AddCustomDeadLetterMessageSerializer<TSerializer>(string groupId) where TSerializer : class;
+        void AddDeadLetterProducer<TMessageKey, TMessage>(string groupId, ProduceConfig config, ProducerConfig confluentConfig);
         void AddKafkaWorker<TMessage>(string groupId);
     }
 }

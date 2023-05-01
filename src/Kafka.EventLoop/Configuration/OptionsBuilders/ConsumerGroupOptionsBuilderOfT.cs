@@ -15,6 +15,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private bool _hasCustomIntakeThrottleType;
         private bool _hasCustomIntakeStrategyType;
         private bool _hasControllerType;
+        private IDeadLetteringOptions? _deadLetteringOptions;
 
         public ConsumerGroupOptionsBuilder(
             string groupId,
@@ -97,6 +98,32 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
+        public IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering<TMessageKey>(
+            Func<IDeadLetteringOptionsBuilder<TMessageKey, TMessage>, IDeadLetteringOptions> optionsAction)
+        {
+            if (_deadLetteringOptions != null)
+            {
+                throw new InvalidOperationException(
+                    $"Dead lettering is already configured for consumer group {_groupId}");
+            }
+
+            var deadLetteringConfig = _consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering;
+            if (deadLetteringConfig == null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot configure dead lettering for consumer group {_groupId}. " +
+                    "Settings don't contain corresponding critical error handling section");
+            }
+
+            var builder = new DeadLetteringOptionsBuilder<TMessageKey, TMessage>(
+                _groupId,
+                deadLetteringConfig,
+                _dependencyRegistrar);
+            _deadLetteringOptions = optionsAction(builder);
+
+            return this;
+        }
+
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>
         {
@@ -141,16 +168,21 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOperationException(
                     $"Missing message deserializer configuration for consumer group {_groupId}");
             }
+            if (_consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering != null &&
+                _deadLetteringOptions == null)
+            {
+                throw new InvalidOperationException(
+                    $"Missing dead lettering configuration for consumer group {_groupId}");
+            }
 
             _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);
-            _dependencyRegistrar.AddConfluentConsumerConfig(_groupId, new ConsumerConfig
+            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId, new ConsumerConfig
             {
                 GroupId = _groupId,
                 BootstrapServers = _consumerGroupConfig.ConnectionString,
                 AutoOffsetReset = _consumerGroupConfig.AutoOffsetReset,
                 EnableAutoCommit = false
             });
-            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId);
             _dependencyRegistrar.AddIntakeScope<TMessage>(_groupId);
             _dependencyRegistrar.AddKafkaWorker<TMessage>(_groupId);
 

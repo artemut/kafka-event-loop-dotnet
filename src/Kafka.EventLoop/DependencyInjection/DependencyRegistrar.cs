@@ -5,6 +5,7 @@ using Kafka.EventLoop.Consume.IntakeStrategies;
 using Kafka.EventLoop.Consume.Throttling;
 using Kafka.EventLoop.Conversion;
 using Kafka.EventLoop.Core;
+using Kafka.EventLoop.Produce;
 using Kafka.EventLoop.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -107,16 +108,11 @@ namespace Kafka.EventLoop.DependencyInjection
             _internalRegistry.ConsumerGroupConfigProviders[groupId] = config;
         }
 
-        public void AddConfluentConsumerConfig(string groupId, ConsumerConfig config)
-        {
-            _internalRegistry.ConfluentConsumerConfigProviders[groupId] = config;
-        }
-
-        public void AddKafkaConsumer<TMessage>(string groupId)
+        public void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig)
         {
             _internalRegistry.KafkaConsumerFactories[groupId] = sp =>
                 new KafkaConsumer<TMessage>(
-                    BuildConfluentConsumer<TMessage>(groupId, sp),
+                    BuildConfluentConsumer<TMessage>(groupId, confluentConfig, sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId],
                     new TimeoutRunner());
         }
@@ -131,6 +127,40 @@ namespace Kafka.EventLoop.DependencyInjection
                     scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }
 
+        public void AddDeadLetterMessageKey<TKey, TMessage>(string groupId, Func<TMessage, TKey> messageKeyProvider)
+        {
+            _internalRegistry.DeadLetterMessageKeyProviders[groupId] = messageKeyProvider;
+        }
+
+        public void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId)
+        {
+            _internalRegistry
+                .DeadLetterMessageSerializerProviders[groupId] = _ => new JsonSerializer<TMessage>();
+        }
+
+        public void AddCustomDeadLetterMessageSerializer<TSerializer>(string groupId) where TSerializer : class
+        {
+            if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
+            {
+                _externalRegistry.AddTransient<TSerializer>();
+            }
+            _internalRegistry.DeadLetterMessageSerializerProviders[groupId] =
+                sp => sp.GetOrThrow<TSerializer>(
+                    $"Error in custom dead-letter message serialization for consumer group {groupId}");
+        }
+
+        public void AddDeadLetterProducer<TKey, TMessage>(
+            string groupId,
+            ProduceConfig config,
+            ProducerConfig confluentConfig)
+        {
+            _internalRegistry.DeadLetterProducerProviders[groupId] = new LazyFunc<IServiceProvider, object>(
+                sp => new KafkaProducer<TKey, TMessage>(
+                    BuildDeadLetterConfluentProducer<TKey, TMessage>(groupId, confluentConfig, sp),
+                    (Func<TMessage, TKey>)_internalRegistry.DeadLetterMessageKeyProviders[groupId],
+                    config));
+        }
+
         public void AddKafkaWorker<TMessage>(string groupId)
         {
             _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
@@ -140,20 +170,36 @@ namespace Kafka.EventLoop.DependencyInjection
                     _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp),
                     () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp),
+                    () => (IKafkaProducer<TMessage>)_internalRegistry.DeadLetterProducerProviders[groupId].Invoke(sp),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
         }
 
         private IConsumer<Ignore, TMessage> BuildConfluentConsumer<TMessage>(
             string groupId,
+            ConsumerConfig config,
             IServiceProvider serviceProvider)
         {
-            var config = _internalRegistry.ConfluentConsumerConfigProviders[groupId];
             var builder = new ConsumerBuilder<Ignore, TMessage>(config);
             var deserializer = (IDeserializer<TMessage>)_internalRegistry
                 .MessageDeserializerProviders[groupId](serviceProvider);
             var logger = serviceProvider.GetRequiredService<ILogger<IConsumer<Ignore, TMessage>>>();
             return builder
                 .SetValueDeserializer(deserializer)
+                .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
+                .Build();
+        }
+
+        private IProducer<TKey, TMessage> BuildDeadLetterConfluentProducer<TKey, TMessage>(
+            string groupId,
+            ProducerConfig config,
+            IServiceProvider serviceProvider)
+        {
+            var builder = new ProducerBuilder<TKey, TMessage>(config);
+            var serializer = (ISerializer<TMessage>)_internalRegistry
+                .DeadLetterMessageSerializerProviders[groupId](serviceProvider);
+            var logger = serviceProvider.GetRequiredService<ILogger<IProducer<TKey, TMessage>>>();
+            return builder
+                .SetValueSerializer(serializer)
                 .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
                 .Build();
         }

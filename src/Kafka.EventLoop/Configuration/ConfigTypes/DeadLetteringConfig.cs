@@ -1,8 +1,7 @@
 ﻿namespace Kafka.EventLoop.Configuration.ConfigTypes
 {
-    internal class DeadLetteringConfig
+    internal class DeadLetteringConfig : ProduceConfig
     {
-        public string ConnectionString { get; set; } = null!;
-        public string TopicName { get; set; } = null!;
+        public bool SendSequentially { get; set; }
     }
 }

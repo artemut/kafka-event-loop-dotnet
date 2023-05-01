@@ -17,7 +17,7 @@ namespace Kafka.EventLoop.WorkerService.Controllers
                 $"Received {messages.Length} bar messages:{Environment.NewLine}" +
                 $"{string.Join(Environment.NewLine, messages.Select(x => x.Value.Key))}");
 
-            return Task.FromResult(MessageProcessingResult.Success);
+            return Task.FromResult(MessageProcessingResult.CriticalError);
         }
     }
 }

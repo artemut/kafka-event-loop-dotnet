@@ -31,6 +31,10 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasMessageType<BarMessage>()
                     .HasJsonMessageDeserializer()
                     .HasController<BarController>()
+                    .HasDeadLettering<string>(dlOptions => dlOptions
+                        .HasDeadLetterMessageKey(x => x.Key)
+                        .HasJsonDeadLetterMessageSerializer()
+                        .Build())
                     .Build())
                 .HasConsumerGroup("bar-dead-letters-group", cgOptions => cgOptions
                     .HasMessageType<BarMessage>()
