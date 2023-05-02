@@ -17,6 +17,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
             try
             {
                 ValidateConsumerGroups(config.ConsumerGroups);
+                ValidateNoDuplicates(config.ConsumerGroups);
             }
             catch (ConfigValidationException ex)
             {
@@ -125,7 +126,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
                     $"{groupId}:" +
                     $"{nameof(ConsumerGroupConfig.Intake)}:" +
                     $"{nameof(IntakeConfig.Strategy)}:" +
-                    $"{ ex.PropertyName}",
+                    $"{ex.PropertyName}",
                     ex.Message);
             }
         }
@@ -231,6 +232,22 @@ namespace Kafka.EventLoop.Configuration.Helpers
             {
                 throw new ConfigValidationException(
                     nameof(config.TopicName), "Value must be provided");
+            }
+        }
+
+        private static void ValidateNoDuplicates(ConsumerGroupConfig[] consumerGroups)
+        {
+            var duplicateGroupIds = consumerGroups
+                .GroupBy(x => x.GroupId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToArray();
+            if (duplicateGroupIds.Any())
+            {
+                throw new ConfigValidationException(
+                    nameof(KafkaConfig.ConsumerGroups),
+                    $"Please provide unique {nameof(ConsumerGroupConfig.GroupId)} value " +
+                    $"for each consumer group. Duplicates: {string.Join(",", duplicateGroupIds)}");
             }
         }
     }
