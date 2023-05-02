@@ -3,7 +3,7 @@
     internal interface IIntakeScope<TMessage> : IDisposable
     {
         IKafkaIntakeStrategy<TMessage> CreateIntakeStrategy();
-        IKafkaIntakeThrottle CreateIntakeThrottle();
+        IKafkaIntakeThrottle GetIntakeThrottle();
         IKafkaController<TMessage> GetController();
     }
 }

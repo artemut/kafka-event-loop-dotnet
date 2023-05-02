@@ -77,8 +77,11 @@ namespace Kafka.EventLoop.DependencyInjection
 
         public void AddDefaultIntakeThrottle(string groupId, IntakeConfig? intakeConfig)
         {
-            _internalRegistry.KafkaIntakeThrottleFactories[groupId] =
-                _ => new DefaultKafkaIntakeThrottle(intakeConfig?.MaxSpeed, new StopwatchAdapter(), Task.Delay);
+            var singleInstance = new DefaultKafkaIntakeThrottle(
+                intakeConfig?.MaxSpeed,
+                () => new StopwatchAdapter(),
+                Task.Delay);
+            _internalRegistry.KafkaIntakeThrottleProviders[groupId] = _ => singleInstance;
         }
 
         public void AddCustomIntakeThrottle<TThrottle>(string groupId) where TThrottle : class
@@ -87,7 +90,7 @@ namespace Kafka.EventLoop.DependencyInjection
             {
                 _externalRegistry.AddScoped<TThrottle>();
             }
-            _internalRegistry.KafkaIntakeThrottleFactories[groupId] = 
+            _internalRegistry.KafkaIntakeThrottleProviders[groupId] = 
                 sp => sp.GetOrThrow<TThrottle>(
                     $"Error in custom intake throttle for consumer group {groupId}");
         }
@@ -123,7 +126,7 @@ namespace Kafka.EventLoop.DependencyInjection
                 new IntakeScope<TMessage>(
                     sp.GetRequiredService<IServiceScopeFactory>().CreateScope(),
                     scopedSp => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
-                    scopedSp => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleFactories[groupId](scopedSp),
+                    scopedSp => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
                     scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }
 

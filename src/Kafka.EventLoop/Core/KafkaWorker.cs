@@ -164,22 +164,24 @@ namespace Kafka.EventLoop.Core
                 {
                     using var intakeScope = _intakeScopeFactory();
                     using var intakeStrategy = intakeScope.CreateIntakeStrategy();
-                    var intakeThrottle = intakeScope.CreateIntakeThrottle();
+                    var intakeThrottle = intakeScope.GetIntakeThrottle();
 
-                    var messages = consumer.CollectMessages(intakeStrategy, cancellationToken);
-                    if (!messages.Any())
+                    await intakeThrottle.ControlSpeedAsync(async () =>
                     {
-                        continue;
-                    }
+                        var messages = consumer.CollectMessages(intakeStrategy, cancellationToken);
+                        if (!messages.Any())
+                        {
+                            return ThrottleOptions.Empty;
+                        }
 
-                    var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
+                        var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
 
-                    await ProcessMessagesAsync(intakeScope, messages, cancellationToken);
+                        await ProcessMessagesAsync(intakeScope, messages, cancellationToken);
 
-                    await consumer.CommitAsync(messages, cancellationToken);
+                        await consumer.CommitAsync(messages, cancellationToken);
 
-                    var throttleOptions = new ThrottleOptions(assignment.Count, messages.Length);
-                    await intakeThrottle.WaitAsync(throttleOptions, cancellationToken);
+                        return new ThrottleOptions(assignment.Count, messages.Length);
+                    }, cancellationToken);
                 }
             }
             finally

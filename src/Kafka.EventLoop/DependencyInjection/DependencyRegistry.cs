@@ -8,7 +8,7 @@ namespace Kafka.EventLoop.DependencyInjection
     {
         public Dictionary<string, Func<IServiceProvider, object>> MessageDeserializerProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> KafkaIntakeStrategyFactories { get; } = new();
-        public Dictionary<string, Func<IServiceProvider, object>> KafkaIntakeThrottleFactories { get; } = new();
+        public Dictionary<string, Func<IServiceProvider, object>> KafkaIntakeThrottleProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> KafkaControllerProviders { get; } = new();
         public Dictionary<string, ConsumerGroupConfig> ConsumerGroupConfigProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> KafkaConsumerFactories { get; } = new();

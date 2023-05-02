@@ -2,6 +2,6 @@
 {
     public interface IKafkaIntakeThrottle
     {
-        Task WaitAsync(ThrottleOptions options, CancellationToken cancellationToken);
+        Task ControlSpeedAsync(Func<Task<ThrottleOptions>> manageable, CancellationToken cancellationToken);
     }
 }

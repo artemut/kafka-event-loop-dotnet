@@ -9,10 +9,12 @@
             _logger = logger;
         }
 
-        public Task WaitAsync(ThrottleOptions options, CancellationToken cancellationToken)
+        public async Task ControlSpeedAsync(Func<Task<ThrottleOptions>> manageable, CancellationToken cancellationToken)
         {
+            await manageable();
+
             _logger.LogDebug("Custom throttling...");
-            return Task.Delay(5000, cancellationToken);
+            await Task.Delay(5000, cancellationToken);
         }
     }
 }

@@ -5,35 +5,39 @@ namespace Kafka.EventLoop.Consume.Throttling
     internal class DefaultKafkaIntakeThrottle : IKafkaIntakeThrottle
     {
         private readonly int? _maxSpeed;
-        private readonly IStopwatch _stopwatch;
+        private readonly Func<IStopwatch> _stopwatchFactory;
         private readonly Func<TimeSpan, CancellationToken, Task> _delayTaskFactory;
 
         public DefaultKafkaIntakeThrottle(
             int? maxSpeed,
-            IStopwatch stopwatch,
+            Func<IStopwatch> stopwatchFactory,
             Func<TimeSpan, CancellationToken, Task> delayTaskFactory)
         {
             _maxSpeed = maxSpeed;
-            _stopwatch = stopwatch;
+            _stopwatchFactory = stopwatchFactory;
             _delayTaskFactory = delayTaskFactory;
-
-            if (_maxSpeed.HasValue)
-                _stopwatch.Start();
         }
 
-        public async Task WaitAsync(ThrottleOptions options, CancellationToken cancellationToken)
+        public async Task ControlSpeedAsync(Func<Task<ThrottleOptions>> manageable, CancellationToken cancellationToken)
         {
             if (!_maxSpeed.HasValue)
+            {
+                await manageable();
                 return;
+            }
 
-            var currentDuration = _stopwatch.Stop();
+            var stopwatch = _stopwatchFactory();
+            stopwatch.Start();
+
+            var options = await manageable();
+
+            var currentDuration = stopwatch.Stop();
             var minDuration = GetMinDurationOfIntake(options);
 
             if (currentDuration >= minDuration)
                 return;
 
             var remainingTime = minDuration - currentDuration;
-            Console.WriteLine($"Throttling (remaining = {remainingTime})");
             var delayTask = _delayTaskFactory(remainingTime, cancellationToken);
             await delayTask;
         }
