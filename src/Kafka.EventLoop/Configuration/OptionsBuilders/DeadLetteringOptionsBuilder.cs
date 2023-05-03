@@ -3,6 +3,7 @@ using Kafka.EventLoop.Configuration.Options;
 using Confluent.Kafka;
 using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Exceptions;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
@@ -30,7 +31,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasMessageKeyType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Dead letter message key is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddDeadLetterMessageKey(_groupId, messageKey.Compile());
@@ -42,7 +43,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasSerializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Dead letter message serializer is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddJsonDeadLetterMessageSerializer<TMessage>(_groupId);
@@ -55,7 +56,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasSerializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Dead letter message serializer is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomDeadLetterMessageSerializer<TSerializer>(_groupId);
@@ -67,12 +68,12 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (!_hasMessageKeyType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Missing dead letter message key configuration for consumer group {_groupId}");
             }
             if (!_hasSerializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Missing dead letter message serializer configuration for consumer group {_groupId}");
             }
 

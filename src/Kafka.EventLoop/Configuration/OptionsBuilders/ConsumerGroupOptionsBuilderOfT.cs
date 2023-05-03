@@ -3,6 +3,7 @@ using Confluent.Kafka;
 using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Configuration.Helpers;
+using Kafka.EventLoop.Exceptions;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
@@ -32,7 +33,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasDeserializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Message deserializer is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddJsonMessageDeserializer<TMessage>(_groupId);
@@ -45,7 +46,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasDeserializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Message deserializer is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_groupId);
@@ -58,14 +59,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_consumerGroupConfig.Intake?.Strategy?.IsDefault() == true)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Cannot use custom intake strategy because consumer group {_groupId} " +
                     $"is configured with default intake strategy: {_consumerGroupConfig.Intake.Strategy.Name}. " +
                     "Either remove default strategy from the settings or do not use custom intake strategy.");
             }
             if (_hasCustomIntakeStrategyType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Custom intake strategy is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy>(_groupId);
@@ -78,7 +79,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasCustomPartitionMessagesFilterType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Custom partition messages filter is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomPartitionMessagesFilter<TFilter>(_groupId);
@@ -91,7 +92,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasCustomIntakeThrottleType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Custom intake throttle is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomIntakeThrottle<TThrottle>(_groupId);
@@ -104,7 +105,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_hasControllerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Controller is already configured for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddKafkaController<TController>(_groupId);
@@ -117,14 +118,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_deadLetteringOptions != null)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Dead lettering is already configured for consumer group {_groupId}");
             }
 
             var deadLetteringConfig = _consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering;
             if (deadLetteringConfig == null)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Cannot configure dead lettering for consumer group {_groupId}. " +
                     "Settings don't contain corresponding critical error handling section");
             }
@@ -164,7 +165,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
             else if (!_hasCustomIntakeStrategyType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Custom intake strategy must be provided for consumer group {_groupId} " +
                     "or a default intake strategy should be configured in the settings");
             }
@@ -174,18 +175,18 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
             if (!_hasControllerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Missing controller configuration for consumer group {_groupId}");
             }
             if (!_hasDeserializerType)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Missing message deserializer configuration for consumer group {_groupId}");
             }
             if (_consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering != null &&
                 _deadLetteringOptions == null)
             {
-                throw new InvalidOperationException(
+                throw new InvalidOptionsException(
                     $"Missing dead lettering configuration for consumer group {_groupId}");
             }
 

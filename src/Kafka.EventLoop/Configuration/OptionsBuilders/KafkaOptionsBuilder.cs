@@ -1,6 +1,7 @@
 ﻿using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Configuration.Options;
 using Kafka.EventLoop.DependencyInjection;
+using Kafka.EventLoop.Exceptions;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
@@ -22,15 +23,13 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_consumerGroups.ContainsKey(groupId))
             {
-                throw new InvalidOperationException(
-                    $"Consumer group {groupId} is already configured");
+                throw new InvalidOptionsException($"Consumer group {groupId} is already configured");
             }
 
             var consumerGroupConfig = _kafkaConfig.ConsumerGroups.SingleOrDefault(x => x.GroupId == groupId);
             if (consumerGroupConfig == null)
             {
-                throw new InvalidOperationException(
-                    $"No configuration found for consumer group {groupId}");
+                throw new InvalidOptionsException($"No configuration found for consumer group {groupId}");
             }
 
             var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar, consumerGroupConfig);
@@ -42,6 +41,21 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
         public IKafkaOptions Build()
         {
+            var missingOptions = _kafkaConfig
+                .ConsumerGroups
+                .Where(c => !_consumerGroups.ContainsKey(c.GroupId))
+                .Select(c => c.GroupId)
+                .ToArray();
+            if (missingOptions.Any())
+            {
+                throw new InvalidOptionsException(
+                    missingOptions.Length == 1
+                        ? $"Consumer group {missingOptions[0]} is present in " +
+                          "the settings but no options are configured for it"
+                        : $"Consumer groups {string.Join(", ", missingOptions)} are present " +
+                          "in the settings but no options are configured for them");
+            }
+
             return new KafkaOptions(_consumerGroups.Values.ToArray());
         }
     }
