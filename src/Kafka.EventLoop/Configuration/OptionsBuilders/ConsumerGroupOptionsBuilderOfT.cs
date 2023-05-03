@@ -17,7 +17,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private bool _hasCustomIntakeStrategyType;
         private bool _hasCustomPartitionMessagesFilterType;
         private bool _hasControllerType;
+        private Type? _controllerType;
         private IDeadLetteringOptions? _deadLetteringOptions;
+        private IStreamingOptions? _streamingOptions;
 
         public ConsumerGroupOptionsBuilder(
             string groupId,
@@ -110,6 +112,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
             _dependencyRegistrar.AddKafkaController<TController>(_groupId);
             _hasControllerType = true;
+            _controllerType = typeof(TController);
             return this;
         }
 
@@ -135,6 +138,32 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 deadLetteringConfig,
                 _dependencyRegistrar);
             _deadLetteringOptions = optionsAction(builder);
+
+            return this;
+        }
+
+        public IConsumerGroupOptionsBuilder<TMessage> HasStreaming<TOutMessage>(
+            Func<IStreamingOptionsBuilder<TMessage, TOutMessage>, IStreamingOptions> optionsAction)
+        {
+            if (_streamingOptions != null)
+            {
+                throw new InvalidOptionsException(
+                    $"Streaming is already configured for consumer group {_groupId}");
+            }
+
+            var streamingConfig = _consumerGroupConfig.Streaming;
+            if (streamingConfig == null)
+            {
+                throw new InvalidOptionsException(
+                    $"Cannot configure streaming for consumer group {_groupId}. " +
+                    "Settings don't contain corresponding streaming section");
+            }
+
+            var builder = new StreamingOptionsBuilder<TMessage, TOutMessage>(
+                _groupId,
+                streamingConfig,
+                _dependencyRegistrar);
+            _streamingOptions = optionsAction(builder);
 
             return this;
         }
@@ -188,6 +217,17 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             {
                 throw new InvalidOptionsException(
                     $"Missing dead lettering configuration for consumer group {_groupId}");
+            }
+            if (_consumerGroupConfig.Streaming != null && _streamingOptions == null)
+            {
+                throw new InvalidOptionsException(
+                    $"Missing streaming configuration for consumer group {_groupId}");
+            }
+            if (_streamingOptions != null && !_controllerType.IsKafkaStreamingController())
+            {
+                throw new InvalidOptionsException(
+                    $"Controller of type {_controllerType?.Name} must be a kafka streaming controller " +
+                    $"when using streaming for consumer group {_groupId}");
             }
 
             _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);

@@ -214,6 +214,7 @@ namespace Kafka.EventLoop.Core
                 await producer.SendMessagesAsync(
                     deadLetters.Select(m => m.Value).ToArray(),
                     deadLetteringConfig.SendSequentially,
+                    null,
                     cancellationToken);
 
                 _logger.LogInformation(

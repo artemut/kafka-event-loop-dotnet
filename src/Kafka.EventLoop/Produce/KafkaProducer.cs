@@ -23,6 +23,7 @@ namespace Kafka.EventLoop.Produce
         public async Task SendMessagesAsync(
             TMessage[] messages,
             bool sendSequentially,
+            int? sendToPartition,
             CancellationToken cancellationToken)
         {
             if (!messages.Any())
@@ -42,12 +43,12 @@ namespace Kafka.EventLoop.Produce
 
                 if (sendSequentially)
                 {
-                    await SendMessagesSequentiallyAsync(messagesToSend, cancellationToken);
+                    await SendMessagesSequentiallyAsync(messagesToSend, sendToPartition, cancellationToken);
                     
                 }
                 else
                 {
-                    await SendMessagesInParallelAsync(messagesToSend, cancellationToken);
+                    await SendMessagesInParallelAsync(messagesToSend, sendToPartition, cancellationToken);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -70,33 +71,40 @@ namespace Kafka.EventLoop.Produce
 
         private async Task SendMessagesSequentiallyAsync(
             Message<TKey, TMessage>[] messagesToSend,
+            int? sendToPartition,
             CancellationToken cancellationToken)
         {
             foreach (var message in messagesToSend)
             {
-                await SendOrThrowAsync(message, null, cancellationToken);
+                await SendOrThrowAsync(message, sendToPartition, null, cancellationToken);
             }
         }
 
         private async Task SendMessagesInParallelAsync(
             Message<TKey, TMessage>[] messagesToSend,
+            int? sendToPartition,
             CancellationToken cancellationToken)
         {
             using var exceptionCts = new CancellationTokenSource();
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(exceptionCts.Token, cancellationToken);
             await Task.WhenAll(messagesToSend
-                .Select(message => SendOrThrowAsync(message, exceptionCts, linkedCts.Token))
+                .Select(message => SendOrThrowAsync(message, sendToPartition, exceptionCts, linkedCts.Token))
                 .ToArray());
         }
 
         private async Task SendOrThrowAsync(
             Message<TKey, TMessage> message,
+            int? sendToPartition,
             CancellationTokenSource? exceptionCts,
             CancellationToken cancellationToken)
         {
             try
             {
-                var result = await _producer.ProduceAsync(_produceConfig.TopicName, message, cancellationToken);
+                var result = !sendToPartition.HasValue
+                    ? await _producer.ProduceAsync(
+                        _produceConfig.TopicName, message, cancellationToken)
+                    : await _producer.ProduceAsync(
+                        new TopicPartition(_produceConfig.TopicName, sendToPartition.Value), message, cancellationToken);
                 if (result.Status == PersistenceStatus.NotPersisted)
                 {
                     throw new Exception("Message was not persisted");

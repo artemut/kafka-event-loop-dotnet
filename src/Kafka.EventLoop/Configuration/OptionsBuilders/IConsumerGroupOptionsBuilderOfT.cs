@@ -25,6 +25,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering<TMessageKey>(
             Func<IDeadLetteringOptionsBuilder<TMessageKey, TMessage>, IDeadLetteringOptions> options);
 
+        IConsumerGroupOptionsBuilder<TMessage> HasStreaming<TOutMessage>(
+            Func<IStreamingOptionsBuilder<TMessage, TOutMessage>, IStreamingOptions> options);
+
         IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>;
 

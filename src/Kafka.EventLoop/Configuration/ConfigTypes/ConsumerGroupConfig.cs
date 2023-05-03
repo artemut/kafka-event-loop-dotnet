@@ -10,6 +10,7 @@ namespace Kafka.EventLoop.Configuration.ConfigTypes
         public AutoOffsetReset? AutoOffsetReset { get; set; }
         public int ParallelConsumers { get; set; }
         public IntakeConfig? Intake { get; set; }
+        public StreamingConfig? Streaming { get; set; }
         public ErrorHandlingConfig? ErrorHandling { get; set; }
     }
 }

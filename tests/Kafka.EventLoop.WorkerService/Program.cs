@@ -26,6 +26,9 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasCustomIntakeStrategy<FooIntakeStrategy>()
                     .HasCustomPartitionMessagesFilter<FooPartitionMessagesFilter>()
                     .HasCustomThrottle<FooIntakeThrottle>()
+                    .HasStreaming<FooEnrichedMessage>(sOptions => sOptions
+                        .HasJsonOutMessageSerializer()
+                        .Build())
                     .HasCustomIntakeObserver<FooIntakeObserver>()
                     .Build())
                 .HasConsumerGroup("bar-group", cgOptions => cgOptions
@@ -42,6 +45,11 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasCustomMessageDeserializer<BarDeadLettersDeserializer>()
                     .HasController<BarDeadLettersController>()
                     .Build())
+                .HasConsumerGroup("foo-one-to-one-streaming-group", cgOptions => cgOptions
+                    .HasMessageType<FooEnrichedMessage>()
+                    .HasJsonMessageDeserializer()
+                    .HasController<FooEnrichedController>()
+                    .Build())
                 .Build());
     })
     .Build();
@@ -49,6 +57,7 @@ var host = Host.CreateDefaultBuilder(args)
 var testSetup = new TestKafkaSetup(host.Services.GetRequiredService<IOptions<TestSettings>>());
 try
 {
+    await testSetup.DeleteKafkaTopicsAsync();
     await testSetup.EnsureKafkaTopicsAsync();
 
     host.Run();

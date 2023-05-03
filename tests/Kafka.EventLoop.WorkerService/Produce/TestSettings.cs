@@ -9,5 +9,7 @@
         public int BarTopicPartitionCount { get; set; }
         public string BarDeadLettersTopic { get; set; }
         public int BarDeadLettersTopicPartitionCount { get; set; }
+        public string FooOneToOneStreamingTopic { get; set; }
+        public int FooOneToOneStreamingTopicPartitionCount { get; set; }
     }
 }

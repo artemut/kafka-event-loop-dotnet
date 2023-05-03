@@ -7,6 +7,7 @@ using Kafka.EventLoop.Consume.Throttling;
 using Kafka.EventLoop.Conversion;
 using Kafka.EventLoop.Core;
 using Kafka.EventLoop.Produce;
+using Kafka.EventLoop.Streaming;
 using Kafka.EventLoop.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -185,6 +186,50 @@ namespace Kafka.EventLoop.DependencyInjection
                     config));
         }
 
+        public void AddJsonStreamingMessageSerializer<TOutMessage>(string groupId)
+        {
+            _internalRegistry
+                .StreamingMessageSerializerProviders[groupId] = _ => new JsonSerializer<TOutMessage>();
+        }
+
+        public void AddCustomStreamingMessageSerializer<TSerializer>(string groupId) where TSerializer : class
+        {
+            if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
+            {
+                _externalRegistry.AddTransient<TSerializer>();
+            }
+            _internalRegistry.StreamingMessageSerializerProviders[groupId] =
+                sp => sp.GetOrThrow<TSerializer>(
+                    $"Error in custom streaming message serialization for consumer group {groupId}");
+        }
+
+        public void AddStreamingProducer<TOutMessage>(
+            string groupId,
+            ProduceConfig config,
+            ProducerConfig confluentConfig)
+        {
+            // todo: currently Ignore key is used as it is possible for one-to-one streaming, consider extending
+
+            _internalRegistry.StreamingProducerProviders[groupId] = new LazyFunc<IServiceProvider, object>(
+                sp => new KafkaProducer<Ignore, TOutMessage>(
+                    BuildStreamingConfluentProducer<TOutMessage>(groupId, confluentConfig, sp),
+                    _ => null!,
+                    config));
+
+            // inject producer into the corresponding kafka streaming controller
+            var originalProvider = _internalRegistry.KafkaControllerProviders[groupId];
+            _internalRegistry.KafkaControllerProviders[groupId] = sp =>
+            {
+                var controller = originalProvider(sp);
+                if (controller is IStreamingInjection<TOutMessage> injection)
+                {
+                    var producer = (IKafkaProducer<TOutMessage>)_internalRegistry.StreamingProducerProviders[groupId].Invoke(sp);
+                    injection.InjectStreamingProducer(producer);
+                }
+                return controller;
+            };
+        }
+
         public void AddKafkaWorker<TMessage>(string groupId)
         {
             _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
@@ -223,6 +268,22 @@ namespace Kafka.EventLoop.DependencyInjection
                 .DeadLetterMessageSerializerProviders[groupId](serviceProvider);
             var logger = serviceProvider.GetRequiredService<ILogger<IProducer<TKey, TMessage>>>();
             return builder
+                .SetValueSerializer(serializer)
+                .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
+                .Build();
+        }
+
+        private IProducer<Ignore, TOutMessage> BuildStreamingConfluentProducer<TOutMessage>(
+            string groupId,
+            ProducerConfig config,
+            IServiceProvider serviceProvider)
+        {
+            var builder = new ProducerBuilder<Ignore, TOutMessage>(config);
+            var serializer = (ISerializer<TOutMessage>)_internalRegistry
+                .StreamingMessageSerializerProviders[groupId](serviceProvider);
+            var logger = serviceProvider.GetRequiredService<ILogger<IProducer<Ignore, TOutMessage>>>();
+            return builder
+                .SetKeySerializer(new IgnoreSerializer())
                 .SetValueSerializer(serializer)
                 .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
                 .Build();

@@ -23,6 +23,7 @@ namespace Kafka.EventLoop.WorkerService.Produce
             await EnsureTopicAsync(adminClient, _settings.FooTopic, _settings.FooTopicPartitionCount);
             await EnsureTopicAsync(adminClient, _settings.BarTopic, _settings.BarTopicPartitionCount);
             await EnsureTopicAsync(adminClient, _settings.BarDeadLettersTopic, _settings.BarDeadLettersTopicPartitionCount);
+            await EnsureTopicAsync(adminClient, _settings.FooOneToOneStreamingTopic, _settings.FooOneToOneStreamingTopicPartitionCount);
         }
 
         public async Task DeleteKafkaTopicsAsync()
@@ -35,6 +36,7 @@ namespace Kafka.EventLoop.WorkerService.Produce
             await DeleteTopicAsync(adminClient, _settings.FooTopic);
             await DeleteTopicAsync(adminClient, _settings.BarTopic);
             await DeleteTopicAsync(adminClient, _settings.BarDeadLettersTopic);
+            await DeleteTopicAsync(adminClient, _settings.FooOneToOneStreamingTopic);
         }
 
         private static async Task EnsureTopicAsync(
@@ -59,9 +61,9 @@ namespace Kafka.EventLoop.WorkerService.Produce
                             }
                         }
                     },
-                    new CreateTopicsOptions { RequestTimeout = TimeSpan.FromSeconds(2) });
+                    new CreateTopicsOptions { RequestTimeout = TimeSpan.FromSeconds(5) });
             }
-            catch (CreateTopicsException e) when (e.Error.Code == ErrorCode.TopicAlreadyExists)
+            catch (CreateTopicsException)
             {
             }
         }
@@ -74,9 +76,9 @@ namespace Kafka.EventLoop.WorkerService.Produce
             {
                 await adminClient.DeleteTopicsAsync(
                     new[] { topicName },
-                    new DeleteTopicsOptions { RequestTimeout = TimeSpan.FromSeconds(2) });
+                    new DeleteTopicsOptions { RequestTimeout = TimeSpan.FromSeconds(5) });
             }
-            catch (DeleteTopicsException e) when (e.Error.Code == ErrorCode.UnknownTopicOrPart)
+            catch (DeleteTopicsException)
             {
             }
         }

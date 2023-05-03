@@ -83,6 +83,15 @@ namespace Kafka.EventLoop.Configuration.Helpers
             }
             try
             {
+                Validate(config.Streaming);
+            }
+            catch (ConfigValidationException ex)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.Streaming)}:{ex.PropertyName}", ex.Message);
+            }
+            try
+            {
                 Validate(config.ErrorHandling);
             }
             catch (ConfigValidationException ex)
@@ -219,7 +228,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
             }
         }
 
-        private static void Validate(DeadLetteringConfig? config)
+        private static void Validate(ProduceConfig? config)
         {
             if (config == null)
                 return;
