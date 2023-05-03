@@ -53,7 +53,6 @@ namespace Kafka.EventLoop.Core
             while (!cancellationToken.IsCancellationRequested)
             {
                 var isRetryable = false;
-                MessageInfo<TMessage>[]? deadLetters = null;
                 try
                 {
                     await RunNewConsumerAsync(cancellationToken);
@@ -73,16 +72,21 @@ namespace Kafka.EventLoop.Core
                     _logger.LogCritical(ex, "Fatal connectivity error while running consumer {ConsumerName}", _consumerName);
                     isRetryable = false;
                 }
-                catch (TransientProcessingException ex)
+                catch (ProcessingException ex) when(ex.ErrorCode == ProcessingErrorCode.TransientError)
                 {
                     _logger.LogError(ex.InnerException, "Transient error while processing messages in consumer {ConsumerName}", _consumerName);
                     isRetryable = true;
                 }
-                catch (CriticalProcessingException<TMessage> ex)
+                catch (ProcessingException ex) when (ex.ErrorCode == ProcessingErrorCode.CriticalError)
                 {
+                    // we catch this exception here when dead-lettering is not enabled
                     _logger.LogCritical(ex.InnerException, "Critical error while processing messages in consumer {ConsumerName}", _consumerName);
                     isRetryable = false;
-                    deadLetters = ex.Messages;
+                }
+                catch (DeadLetteringFailedException ex)
+                {
+                    _logger.LogCritical(ex.InnerException, "Dead-lettering failed for consumer {ConsumerName}", _consumerName);
+                    isRetryable = ex.Strategy is DeadLetteringFailStrategy.RestartConsumer or null;
                 }
                 catch (DependencyException ex)
                 {
@@ -107,50 +111,9 @@ namespace Kafka.EventLoop.Core
                     await Task.Delay(delay, cancellationToken);
                     continue;
                 }
-                
-                if (deadLetters == null || _errorHandlingConfig?.Critical?.DeadLettering == null)
-                {
-                    _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
-                    return;
-                }
 
-                var deadLetteringConfig = _errorHandlingConfig.Critical.DeadLettering;
-                try
-                {
-                    _logger.LogWarning(
-                        "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                        deadLetters.Length, _consumerName);
-
-                    var producer = _kafkaDeadLetterProducerProvider();
-                    await producer.SendMessagesAsync(
-                        deadLetters.Select(m => m.Value).ToArray(),
-                        deadLetteringConfig.SendSequentially,
-                        cancellationToken);
-
-                    _logger.LogInformation(
-                        "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                        deadLetters.Length, _consumerName);
-                }
-                catch (ProduceException ex)
-                {
-                    _logger.LogCritical(ex, "Dead-lettering failed for consumer {ConsumerName}", _consumerName);
-
-                    switch (deadLetteringConfig.OnDeadLetteringFailed)
-                    {
-                        case DeadLetteringFailStrategy.StopConsumer:
-                            _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
-                            return;
-                        case DeadLetteringFailStrategy.RestartConsumer or null:
-                        {
-                            var delay = _errorHandlingConfig?.Transient?.RestartConsumerAfterMs ?? DefaultRestartDelayInMs;
-                            _logger.LogWarning("Restarting consumer {ConsumerName} in {Delay} ms...", _consumerName, delay);
-                            await Task.Delay(delay, cancellationToken);
-                            continue;
-                        }
-                        default:
-                            throw;
-                    }
-                }
+                _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
+                return;
             }
         }
 
@@ -202,7 +165,7 @@ namespace Kafka.EventLoop.Core
             }
         }
 
-        private static async Task ProcessMessagesAsync(
+        private async Task ProcessMessagesAsync(
             IIntakeScope<TMessage> intakeScope,
             MessageInfo<TMessage>[] messages,
             CancellationToken cancellationToken)
@@ -218,11 +181,48 @@ namespace Kafka.EventLoop.Core
             }
             catch (ProcessingException ex) when(ex.ErrorCode == ProcessingErrorCode.TransientError)
             {
-                throw new TransientProcessingException(ex);
+                throw;
             }
             catch (Exception ex)
             {
-                throw new CriticalProcessingException<TMessage>(messages, ex);
+                var deadLetteringConfig = _errorHandlingConfig?.Critical?.DeadLettering;
+                if (deadLetteringConfig == null)
+                    throw;
+
+                await SendDeadLetterMessagesAsync(
+                    messages,
+                    deadLetteringConfig,
+                    ex,
+                    cancellationToken);
+            }
+        }
+
+        private async Task SendDeadLetterMessagesAsync(
+            MessageInfo<TMessage>[] deadLetters,
+            DeadLetteringConfig deadLetteringConfig,
+            Exception exception,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogCritical(exception, "Critical error while processing messages in consumer {ConsumerName}", _consumerName);
+                _logger.LogWarning(
+                    "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
+                    deadLetters.Length, _consumerName);
+
+                var producer = _kafkaDeadLetterProducerProvider();
+                await producer.SendMessagesAsync(
+                    deadLetters.Select(m => m.Value).ToArray(),
+                    deadLetteringConfig.SendSequentially,
+                    cancellationToken);
+
+                _logger.LogInformation(
+                    "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
+                    deadLetters.Length, _consumerName);
+            }
+            catch (ProduceException ex)
+            {
+                throw new DeadLetteringFailedException(deadLetteringConfig.OnDeadLetteringFailed, ex);
             }
         }
     }
