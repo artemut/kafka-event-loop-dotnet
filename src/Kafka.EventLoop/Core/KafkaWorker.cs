@@ -53,7 +53,7 @@ namespace Kafka.EventLoop.Core
             while (!cancellationToken.IsCancellationRequested)
             {
                 var isRetryable = false;
-                ProcessingException<TMessage>? processingException = null;
+                MessageInfo<TMessage>[]? deadLetters = null;
                 try
                 {
                     await RunNewConsumerAsync(cancellationToken);
@@ -73,15 +73,16 @@ namespace Kafka.EventLoop.Core
                     _logger.LogCritical(ex, "Fatal connectivity error while running consumer {ConsumerName}", _consumerName);
                     isRetryable = false;
                 }
-                catch (ProcessingException<TMessage> ex)
+                catch (TransientProcessingException ex)
                 {
-                    _logger.Log(
-                        ex.ErrorCode == ProcessingErrorCode.CriticalError ? LogLevel.Critical : LogLevel.Error,
-                        ex.InnerException,
-                        "Error while processing messages in consumer {ConsumerName} [{ErrorCode}]",
-                        _consumerName, ex.ErrorCode);
-                    isRetryable = ex.ErrorCode == ProcessingErrorCode.TransientError;
-                    processingException = ex;
+                    _logger.LogError(ex.InnerException, "Transient error while processing messages in consumer {ConsumerName}", _consumerName);
+                    isRetryable = true;
+                }
+                catch (CriticalProcessingException<TMessage> ex)
+                {
+                    _logger.LogCritical(ex.InnerException, "Critical error while processing messages in consumer {ConsumerName}", _consumerName);
+                    isRetryable = false;
+                    deadLetters = ex.Messages;
                 }
                 catch (DependencyException ex)
                 {
@@ -107,7 +108,7 @@ namespace Kafka.EventLoop.Core
                     continue;
                 }
                 
-                if (processingException == null || _errorHandlingConfig?.Critical?.DeadLettering == null)
+                if (deadLetters == null || _errorHandlingConfig?.Critical?.DeadLettering == null)
                 {
                     _logger.LogCritical("Consumer {ConsumerName} was stopped", _consumerName);
                     return;
@@ -118,17 +119,17 @@ namespace Kafka.EventLoop.Core
                 {
                     _logger.LogWarning(
                         "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                        processingException.Messages.Length, _consumerName);
+                        deadLetters.Length, _consumerName);
 
                     var producer = _kafkaDeadLetterProducerProvider();
                     await producer.SendMessagesAsync(
-                        processingException.Messages.Select(m => m.Value).ToArray(),
+                        deadLetters.Select(m => m.Value).ToArray(),
                         deadLetteringConfig.SendSequentially,
                         cancellationToken);
 
                     _logger.LogInformation(
                         "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                        processingException.Messages.Length, _consumerName);
+                        deadLetters.Length, _consumerName);
                 }
                 catch (ProduceException ex)
                 {
@@ -207,31 +208,21 @@ namespace Kafka.EventLoop.Core
             CancellationToken cancellationToken)
         {
             var controller = intakeScope.GetController();
-            MessageProcessingResult result;
             try
             {
-                result = await controller.ProcessAsync(messages, cancellationToken);
+                await controller.ProcessAsync(messages, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
+            catch (ProcessingException ex) when(ex.ErrorCode == ProcessingErrorCode.TransientError)
+            {
+                throw new TransientProcessingException(ex);
+            }
             catch (Exception ex)
             {
-                throw new ProcessingException<TMessage>(ProcessingErrorCode.CriticalError, messages, ex);
-            }
-
-            switch (result)
-            {
-                case MessageProcessingResult.Success:
-                    return;
-                case MessageProcessingResult.TransientError:
-                    throw new ProcessingException<TMessage>(ProcessingErrorCode.TransientError, messages);
-                case MessageProcessingResult.CriticalError:
-                    throw new ProcessingException<TMessage>(ProcessingErrorCode.CriticalError, messages);
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        nameof(result), result, "Unknown message processing result");
+                throw new CriticalProcessingException<TMessage>(messages, ex);
             }
         }
     }

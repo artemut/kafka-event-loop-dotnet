@@ -1,18 +1,16 @@
 ﻿namespace Kafka.EventLoop.Exceptions
 {
-    public class ProcessingException<TMessage> : Exception
+    public class ProcessingException : Exception
     {
         public ProcessingException(
             ProcessingErrorCode errorCode,
-            MessageInfo<TMessage>[] messages,
+            string? message = null,
             Exception? innerException = null)
-            : base(null, innerException)
+            : base(message, innerException)
         {
             ErrorCode = errorCode;
-            Messages = messages;
         }
-        
+
         public ProcessingErrorCode ErrorCode { get; }
-        public MessageInfo<TMessage>[] Messages { get; }
     }
 }

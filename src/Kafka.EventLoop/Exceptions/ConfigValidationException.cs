@@ -1,6 +1,6 @@
 ﻿namespace Kafka.EventLoop.Exceptions
 {
-    public class ConfigValidationException : Exception
+    internal class ConfigValidationException : Exception
     {
         public ConfigValidationException(string propertyName, string? message = null) : base(message)
         {

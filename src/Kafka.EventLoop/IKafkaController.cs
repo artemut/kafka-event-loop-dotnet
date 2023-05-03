@@ -2,6 +2,6 @@
 {
     public interface IKafkaController<TMessage>
     {
-        Task<MessageProcessingResult> ProcessAsync(MessageInfo<TMessage>[] messages, CancellationToken token);
+        Task ProcessAsync(MessageInfo<TMessage>[] messages, CancellationToken token);
     }
 }

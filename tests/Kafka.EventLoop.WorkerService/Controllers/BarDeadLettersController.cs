@@ -11,13 +11,13 @@ namespace Kafka.EventLoop.WorkerService.Controllers
             _logger = logger;
         }
 
-        public Task<MessageProcessingResult> ProcessAsync(MessageInfo<BarMessage>[] messages, CancellationToken token)
+        public Task ProcessAsync(MessageInfo<BarMessage>[] messages, CancellationToken token)
         {
             _logger.LogInformation(
                 $"Received {messages.Length} bar dead messages:{Environment.NewLine}" +
                 $"{string.Join(Environment.NewLine, messages.Select(x => x.Value.Key))}");
 
-            return Task.FromResult(MessageProcessingResult.Success);
+            return Task.CompletedTask;
         }
     }
 }
