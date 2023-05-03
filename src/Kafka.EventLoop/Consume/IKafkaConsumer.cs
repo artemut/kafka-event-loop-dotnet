@@ -14,6 +14,8 @@ namespace Kafka.EventLoop.Consume
 
         Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken);
 
+        Task SeekAsync(IDictionary<int, long> partitionToLastAllowedOffset, CancellationToken cancellationToken);
+
         Task CloseAsync(CancellationToken cancellationToken);
     }
 }

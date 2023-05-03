@@ -174,13 +174,24 @@ namespace Kafka.EventLoop.Core
                             return ThrottleOptions.Empty;
                         }
 
+                        var intakeFilter = intakeScope.GetIntakeFilter();
+                        var result = intakeFilter.FilterMessages(messages);
+
                         var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
 
-                        await ProcessMessagesAsync(intakeScope, messages, cancellationToken);
+                        await ProcessMessagesAsync(intakeScope, result.Messages, cancellationToken);
 
-                        await consumer.CommitAsync(messages, cancellationToken);
+                        await consumer.CommitAsync(result.Messages, cancellationToken);
 
-                        return new ThrottleOptions(assignment.Count, messages.Length);
+                        if (result.PartitionToLastAllowedOffset != null)
+                        {
+                            // if some offsets weren't committed
+                            // we need to seek consumer back
+                            // so that filtered out messages are consumed again the next iteration
+                            await consumer.SeekAsync(result.PartitionToLastAllowedOffset, cancellationToken);
+                        }
+
+                        return new ThrottleOptions(assignment.Count, result.Messages.Length);
                     }, cancellationToken);
                 }
             }

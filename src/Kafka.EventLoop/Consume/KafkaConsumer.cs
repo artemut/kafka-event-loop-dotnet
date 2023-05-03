@@ -126,6 +126,35 @@ namespace Kafka.EventLoop.Consume
             }
         }
 
+        public async Task SeekAsync(
+            IDictionary<int, long> partitionToLastAllowedOffset,
+            CancellationToken cancellationToken)
+        {
+            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            try
+            {
+                foreach (var (partition, lastAllowedOffset) in partitionToLastAllowedOffset)
+                {
+                    var seekTo = new TopicPartitionOffset(
+                        _consumerGroupConfig.TopicName,
+                        partition,
+                        lastAllowedOffset + 1);
+
+                    await _timeoutRunner.RunAsync(
+                        () => _consumer.Seek(seekTo),
+                        timeout,
+                        $"Wasn't able to seek to offset within configured timeout {timeout}",
+                        cancellationToken);
+                }
+            }
+            catch (KafkaException ex)
+            {
+                throw new ConnectivityException(
+                    $"Error while seeking to offset on kafka: {ex.Error.Code}",
+                    ex.Error.IsFatal, ex);
+            }
+        }
+
         public async Task CloseAsync(CancellationToken cancellationToken)
         {
             var timeout = TimeSpan.FromSeconds(2); // todo: make configurable

@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
+using Kafka.EventLoop.Consume.Filtration;
 using Kafka.EventLoop.Consume.IntakeStrategies;
 using Kafka.EventLoop.Consume.Throttling;
 using Kafka.EventLoop.Conversion;
@@ -75,6 +76,17 @@ namespace Kafka.EventLoop.DependencyInjection
                     $"Error in custom intake strategy for consumer group {groupId}");
         }
 
+        public void AddCustomPartitionMessagesFilter<TFilter>(string groupId) where TFilter : class
+        {
+            if (_externalRegistry.All(s => s.ImplementationType != typeof(TFilter)))
+            {
+                _externalRegistry.AddScoped<TFilter>();
+            }
+            _internalRegistry.KafkaPartitionMessagesFilterProviders[groupId] =
+                sp => sp.GetOrThrow<TFilter>(
+                    $"Error in custom partition messages filter for consumer group {groupId}");
+        }
+
         public void AddDefaultIntakeThrottle(string groupId, IntakeConfig? intakeConfig)
         {
             var singleInstance = new DefaultKafkaIntakeThrottle(
@@ -126,6 +138,15 @@ namespace Kafka.EventLoop.DependencyInjection
                 new IntakeScope<TMessage>(
                     sp.GetRequiredService<IServiceScopeFactory>().CreateScope(),
                     scopedSp => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
+                    scopedSp =>
+                    {
+                        var filterProviders = _internalRegistry.KafkaPartitionMessagesFilterProviders;
+                        return new KafkaIntakeFilter<TMessage>(
+                            filterProviders.ContainsKey(groupId)
+                                ? (IKafkaPartitionMessagesFilter<TMessage>)filterProviders[groupId](scopedSp)
+                                : null,
+                            scopedSp.GetRequiredService<ILogger<KafkaIntakeFilter<TMessage>>>());
+                    },
                     scopedSp => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
                     scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }

@@ -5,18 +5,18 @@ namespace Kafka.EventLoop.WorkerService.Custom
     internal class FooIntakeStrategy : IKafkaIntakeStrategy<FooMessage>
     {
         private readonly CancellationTokenSource _cts;
+        private int _counter;
 
         public FooIntakeStrategy()
         {
-            _cts = new CancellationTokenSource();
+            _cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         }
 
         public CancellationToken Token => _cts.Token;
 
         public void OnNewMessageConsumed(MessageInfo<FooMessage> messageInfo)
         {
-            // finish intake each time we have a message key which can be divided by 7
-            if (messageInfo.Value.Key % 7 == 0)
+            if (++_counter >= 10)
                 _cts.Cancel();
         }
 
