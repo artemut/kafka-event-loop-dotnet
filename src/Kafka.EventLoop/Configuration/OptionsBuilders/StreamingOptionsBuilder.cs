@@ -29,7 +29,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Outgoing stream message serializer is already configured for consumer group {_groupId}");
+                    $"Outgoing stream message serializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddJsonStreamingMessageSerializer<TOutMessage>(_groupId);
             _hasSerializerType = true;
@@ -42,7 +42,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Outgoing stream message serializer is already configured for consumer group {_groupId}");
+                    $"Outgoing stream message serializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomStreamingMessageSerializer<TSerializer>(_groupId);
             _hasSerializerType = true;
@@ -54,7 +54,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (!_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Missing outgoing stream message serializer configuration for consumer group {_groupId}");
+                    $"Outgoing stream message serializer is not specified for consumer group {_groupId}");
             }
 
             var confluentConfig = new ProducerConfig

@@ -23,13 +23,15 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         {
             if (_consumerGroups.ContainsKey(groupId))
             {
-                throw new InvalidOptionsException($"Consumer group {groupId} is already configured");
+                throw new InvalidOptionsException(
+                    $"Options for consumer group {groupId} are already provided");
             }
 
             var consumerGroupConfig = _kafkaConfig.ConsumerGroups.SingleOrDefault(x => x.GroupId == groupId);
             if (consumerGroupConfig == null)
             {
-                throw new InvalidOptionsException($"No configuration found for consumer group {groupId}");
+                throw new InvalidOptionsException(
+                    $"No settings found for consumer group {groupId}");
             }
 
             var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar, consumerGroupConfig);
@@ -51,9 +53,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     missingOptions.Length == 1
                         ? $"Consumer group {missingOptions[0]} is present in " +
-                          "the settings but no options are configured for it"
+                          "the settings but no options are provided for it"
                         : $"Consumer groups {string.Join(", ", missingOptions)} are present " +
-                          "in the settings but no options are configured for them");
+                          "in the settings but no options are provided for them");
             }
 
             return new KafkaOptions(_consumerGroups.Values.ToArray());

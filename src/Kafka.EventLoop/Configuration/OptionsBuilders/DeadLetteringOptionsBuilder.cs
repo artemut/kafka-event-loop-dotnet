@@ -32,7 +32,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasMessageKeyType)
             {
                 throw new InvalidOptionsException(
-                    $"Dead letter message key is already configured for consumer group {_groupId}");
+                    $"Dead letter message key is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddDeadLetterMessageKey(_groupId, messageKey.Compile());
             _hasMessageKeyType = true;
@@ -44,7 +44,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Dead letter message serializer is already configured for consumer group {_groupId}");
+                    $"Dead letter message serializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddJsonDeadLetterMessageSerializer<TMessage>(_groupId);
             _hasSerializerType = true;
@@ -57,7 +57,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Dead letter message serializer is already configured for consumer group {_groupId}");
+                    $"Dead letter message serializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomDeadLetterMessageSerializer<TSerializer>(_groupId);
             _hasSerializerType = true;
@@ -69,12 +69,12 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (!_hasMessageKeyType)
             {
                 throw new InvalidOptionsException(
-                    $"Missing dead letter message key configuration for consumer group {_groupId}");
+                    $"Dead letter message key is not specified for consumer group {_groupId}");
             }
             if (!_hasSerializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Missing dead letter message serializer configuration for consumer group {_groupId}");
+                    $"Dead letter message serializer is not specified for consumer group {_groupId}");
             }
 
             var confluentConfig = new ProducerConfig

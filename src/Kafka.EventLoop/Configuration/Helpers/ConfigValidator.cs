@@ -12,7 +12,7 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
             {
-                throw new ConfigValidationException(KafkaSectionName, "Cannot find config section");
+                throw new ConfigValidationException(KafkaSectionName, "Cannot find config section in the settings");
             }
             try
             {

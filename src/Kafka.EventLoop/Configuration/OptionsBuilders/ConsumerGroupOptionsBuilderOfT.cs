@@ -36,7 +36,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasDeserializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Message deserializer is already configured for consumer group {_groupId}");
+                    $"Message deserializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddJsonMessageDeserializer<TMessage>(_groupId);
             _hasDeserializerType = true;
@@ -49,7 +49,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasDeserializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Message deserializer is already configured for consumer group {_groupId}");
+                    $"Message deserializer is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_groupId);
             _hasDeserializerType = true;
@@ -69,7 +69,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasCustomIntakeStrategyType)
             {
                 throw new InvalidOptionsException(
-                    $"Custom intake strategy is already configured for consumer group {_groupId}");
+                    $"Custom intake strategy is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy>(_groupId);
             _hasCustomIntakeStrategyType = true;
@@ -82,7 +82,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasCustomPartitionMessagesFilterType)
             {
                 throw new InvalidOptionsException(
-                    $"Custom partition messages filter is already configured for consumer group {_groupId}");
+                    $"Custom partition messages filter is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomPartitionMessagesFilter<TFilter>(_groupId);
             _hasCustomPartitionMessagesFilterType = true;
@@ -95,7 +95,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasCustomIntakeThrottleType)
             {
                 throw new InvalidOptionsException(
-                    $"Custom intake throttle is already configured for consumer group {_groupId}");
+                    $"Custom intake throttle is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddCustomIntakeThrottle<TThrottle>(_groupId);
             _hasCustomIntakeThrottleType = true;
@@ -108,7 +108,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_hasControllerType)
             {
                 throw new InvalidOptionsException(
-                    $"Controller is already configured for consumer group {_groupId}");
+                    $"Controller is already specified for consumer group {_groupId}");
             }
             _dependencyRegistrar.AddKafkaController<TController>(_groupId);
             _hasControllerType = true;
@@ -122,15 +122,15 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_deadLetteringOptions != null)
             {
                 throw new InvalidOptionsException(
-                    $"Dead lettering is already configured for consumer group {_groupId}");
+                    $"Dead lettering options are already provided for consumer group {_groupId}");
             }
 
             var deadLetteringConfig = _consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering;
             if (deadLetteringConfig == null)
             {
                 throw new InvalidOptionsException(
-                    $"Cannot configure dead lettering for consumer group {_groupId}. " +
-                    "Settings don't contain corresponding critical error handling section");
+                    $"Cannot use dead lettering options for consumer group {_groupId}. " +
+                    "Settings do not contain corresponding critical error handling section");
             }
 
             var builder = new DeadLetteringOptionsBuilder<TMessageKey, TMessage>(
@@ -148,15 +148,15 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (_streamingOptions != null)
             {
                 throw new InvalidOptionsException(
-                    $"Streaming is already configured for consumer group {_groupId}");
+                    $"Streaming options are already provided for consumer group {_groupId}");
             }
 
             var streamingConfig = _consumerGroupConfig.Streaming;
             if (streamingConfig == null)
             {
                 throw new InvalidOptionsException(
-                    $"Cannot configure streaming for consumer group {_groupId}. " +
-                    "Settings don't contain corresponding streaming section");
+                    $"Cannot use streaming options for consumer group {_groupId}. " +
+                    "Settings do not contain corresponding streaming section");
             }
 
             var builder = new StreamingOptionsBuilder<TMessage, TOutMessage>(
@@ -195,8 +195,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             else if (!_hasCustomIntakeStrategyType)
             {
                 throw new InvalidOptionsException(
-                    $"Custom intake strategy must be provided for consumer group {_groupId} " +
-                    "or a default intake strategy should be configured in the settings");
+                    "Either default intake strategy should be configured in the settings " +
+                    $"for consumer group {_groupId} or custom intake strategy should be specified");
             }
             if (!_hasCustomIntakeThrottleType)
             {
@@ -205,23 +205,23 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             if (!_hasControllerType)
             {
                 throw new InvalidOptionsException(
-                    $"Missing controller configuration for consumer group {_groupId}");
+                    $"Controller is not specified for consumer group {_groupId}");
             }
             if (!_hasDeserializerType)
             {
                 throw new InvalidOptionsException(
-                    $"Missing message deserializer configuration for consumer group {_groupId}");
+                    $"Message deserializer is not specified for consumer group {_groupId}");
             }
             if (_consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering != null &&
                 _deadLetteringOptions == null)
             {
                 throw new InvalidOptionsException(
-                    $"Missing dead lettering configuration for consumer group {_groupId}");
+                    $"Missing dead lettering options for consumer group {_groupId}");
             }
             if (_consumerGroupConfig.Streaming != null && _streamingOptions == null)
             {
                 throw new InvalidOptionsException(
-                    $"Missing streaming configuration for consumer group {_groupId}");
+                    $"Missing streaming options for consumer group {_groupId}");
             }
             if (_streamingOptions != null && !_controllerType.IsKafkaStreamingController())
             {
