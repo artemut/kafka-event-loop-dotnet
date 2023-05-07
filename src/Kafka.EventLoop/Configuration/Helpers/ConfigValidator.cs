@@ -99,6 +99,31 @@ namespace Kafka.EventLoop.Configuration.Helpers
                 throw new ConfigValidationException(
                     $"{config.GroupId}:{nameof(config.ErrorHandling)}:{ex.PropertyName}", ex.Message);
             }
+            if (config.SubscribeTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.SubscribeTimeoutMs)}", "Value must be greater than 0");
+            }
+            if (config.GetCurrentAssignmentTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.GetCurrentAssignmentTimeoutMs)}", "Value must be greater than 0");
+            }
+            if (config.CommitTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.CommitTimeoutMs)}", "Value must be greater than 0");
+            }
+            if (config.SeekTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.SeekTimeoutMs)}", "Value must be greater than 0");
+            }
+            if (config.CloseTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    $"{config.GroupId}:{nameof(config.CloseTimeoutMs)}", "Value must be greater than 0");
+            }
         }
 
         public static void Validate(IntakeConfig? config)
@@ -241,6 +266,21 @@ namespace Kafka.EventLoop.Configuration.Helpers
             {
                 throw new ConfigValidationException(
                     nameof(config.TopicName), "Value must be provided");
+            }
+            if (config.RequestTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    nameof(config.RequestTimeoutMs), "Value must be greater than 0");
+            }
+            if (config.SocketTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    nameof(config.SocketTimeoutMs), "Value must be greater than 0");
+            }
+            if (config.MessageTimeoutMs is <= 0)
+            {
+                throw new ConfigValidationException(
+                    nameof(config.MessageTimeoutMs), "Value must be greater than 0");
             }
         }
 

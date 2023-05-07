@@ -1,4 +1,5 @@
-﻿using Kafka.EventLoop.Configuration.ConfigTypes;
+﻿using Kafka.EventLoop.Configuration;
+using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Exceptions;
@@ -9,8 +10,6 @@ namespace Kafka.EventLoop.Core
 {
     internal class KafkaWorker<TMessage> : IKafkaWorker
     {
-        private const int DefaultRestartDelayInMs = 5000;
-
         private readonly string _consumerName;
         private readonly ErrorHandlingConfig? _errorHandlingConfig;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
@@ -106,7 +105,7 @@ namespace Kafka.EventLoop.Core
 
                 if (isRetryable)
                 {
-                    var delay = _errorHandlingConfig?.Transient?.RestartConsumerAfterMs ?? DefaultRestartDelayInMs;
+                    var delay = _errorHandlingConfig?.Transient?.RestartConsumerAfterMs ?? Defaults.RestartConsumerAfterMs;
                     _logger.LogWarning("Restarting consumer {ConsumerName} in {Delay} ms...", _consumerName, delay);
                     await Task.Delay(delay, cancellationToken);
                     continue;

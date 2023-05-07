@@ -81,9 +81,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             {
                 BootstrapServers = _config.ConnectionString,
                 AllowAutoCreateTopics = false,
-                RequestTimeoutMs = 2000, // todo: make configurable
-                SocketTimeoutMs = 2000, // todo: make configurable
-                MessageTimeoutMs = 2000, // todo: make configurable
+                RequestTimeoutMs = _config.RequestTimeoutMs ?? Defaults.RequestTimeoutMs,
+                SocketTimeoutMs = _config.SocketTimeoutMs ?? Defaults.SocketTimeoutMs,
+                MessageTimeoutMs = _config.MessageTimeoutMs ?? Defaults.MessageTimeoutMs,
                 EnableDeliveryReports = true,
                 Acks = _config.AckLevel switch
                 {

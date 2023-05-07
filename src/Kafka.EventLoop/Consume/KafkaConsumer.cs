@@ -1,4 +1,5 @@
 ﻿using Confluent.Kafka;
+using Kafka.EventLoop.Configuration;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Exceptions;
 using Kafka.EventLoop.Utils;
@@ -23,7 +24,7 @@ namespace Kafka.EventLoop.Consume
 
         public async Task SubscribeAsync(CancellationToken cancellationToken)
         {
-            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.SubscribeTimeoutMs ?? Defaults.SubscribeTimeoutMs);
             try
             {
                 await _timeoutRunner.RunAsync(
@@ -81,7 +82,8 @@ namespace Kafka.EventLoop.Consume
 
         public async Task<List<TopicPartition>> GetCurrentAssignmentAsync(CancellationToken cancellationToken)
         {
-            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.GetCurrentAssignmentTimeoutMs ??
+                                               Defaults.GetCurrentAssignmentTimeoutMs);
             try
             {
                 List<TopicPartition>? assignment = null;
@@ -109,7 +111,7 @@ namespace Kafka.EventLoop.Consume
                     new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
                 .ToList();
 
-            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.CommitTimeoutMs ?? Defaults.CommitTimeoutMs);
             try
             {
                 await _timeoutRunner.RunAsync(
@@ -130,7 +132,7 @@ namespace Kafka.EventLoop.Consume
             IDictionary<int, long> partitionToLastAllowedOffset,
             CancellationToken cancellationToken)
         {
-            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.SeekTimeoutMs ?? Defaults.SeekTimeoutMs);
             try
             {
                 foreach (var (partition, lastAllowedOffset) in partitionToLastAllowedOffset)
@@ -157,7 +159,7 @@ namespace Kafka.EventLoop.Consume
 
         public async Task CloseAsync(CancellationToken cancellationToken)
         {
-            var timeout = TimeSpan.FromSeconds(2); // todo: make configurable
+            var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.CloseTimeoutMs ?? Defaults.CloseTimeoutMs);
             try
             {
                 await _timeoutRunner.RunAsync(
