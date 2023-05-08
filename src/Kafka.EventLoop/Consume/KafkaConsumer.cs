@@ -13,14 +13,18 @@ namespace Kafka.EventLoop.Consume
         private readonly ITimeoutRunner _timeoutRunner;
 
         public KafkaConsumer(
+            string consumerName,
             IConsumer<Ignore, TMessage> consumer,
             ConsumerGroupConfig consumerGroupConfig,
             ITimeoutRunner timeoutRunner)
         {
+            Name = consumerName;
             _consumer = consumer;
             _consumerGroupConfig = consumerGroupConfig;
             _timeoutRunner = timeoutRunner;
         }
+
+        public string Name { get; }
 
         public async Task SubscribeAsync(CancellationToken cancellationToken)
         {

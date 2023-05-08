@@ -29,8 +29,8 @@ namespace Kafka.EventLoop
             services.AddSingleton(options);
 
             // register hosted service
-            services.AddSingleton<Func<string, int, IKafkaWorker>>(
-                sp => (groupId, consumerId) => registry.KafkaWorkerFactories[groupId](sp, consumerId));
+            services.AddSingleton<Func<string, string, IKafkaWorker>>(
+                sp => (groupId, consumerName) => registry.KafkaWorkerFactories[groupId](sp, consumerName));
             services.AddHostedService<KafkaBackgroundService>();
 
             return services;

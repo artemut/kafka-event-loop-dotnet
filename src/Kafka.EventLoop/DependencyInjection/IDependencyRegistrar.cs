@@ -17,7 +17,6 @@ namespace Kafka.EventLoop.DependencyInjection
         void AddKafkaController<TController>(string groupId) where TController : class;
         void AddConsumerGroupConfig(string groupId, ConsumerGroupConfig config);
         void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig);
-        void AddIntakeScope<TMessage>(string groupId);
         void AddDeadLetterMessageKey<TMessageKey, TMessage>(string groupId, Func<TMessage, TMessageKey> messageKeyProvider);
         void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId);
         void AddCustomDeadLetterMessageSerializer<TSerializer>(string groupId) where TSerializer : class;

@@ -126,30 +126,12 @@ namespace Kafka.EventLoop.DependencyInjection
 
         public void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig)
         {
-            _internalRegistry.KafkaConsumerFactories[groupId] = sp =>
+            _internalRegistry.KafkaConsumerFactories[groupId] = (sp, consumerName) =>
                 new KafkaConsumer<TMessage>(
+                    consumerName,
                     BuildConfluentConsumer<TMessage>(groupId, confluentConfig, sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId],
                     new TimeoutRunner());
-        }
-
-        public void AddIntakeScope<TMessage>(string groupId)
-        {
-            _internalRegistry.IntakeScopeFactories[groupId] = sp =>
-                new IntakeScope<TMessage>(
-                    sp.GetRequiredService<IServiceScopeFactory>().CreateScope(),
-                    scopedSp => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
-                    scopedSp =>
-                    {
-                        var filterProviders = _internalRegistry.KafkaPartitionMessagesFilterProviders;
-                        return new KafkaIntakeFilter<TMessage>(
-                            filterProviders.ContainsKey(groupId)
-                                ? (IKafkaPartitionMessagesFilter<TMessage>)filterProviders[groupId](scopedSp)
-                                : null,
-                            scopedSp.GetRequiredService<ILogger<KafkaIntakeFilter<TMessage>>>());
-                    },
-                    scopedSp => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
-                    scopedSp => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp));
         }
 
         public void AddDeadLetterMessageKey<TKey, TMessage>(string groupId, Func<TMessage, TKey> messageKeyProvider)
@@ -232,14 +214,36 @@ namespace Kafka.EventLoop.DependencyInjection
 
         public void AddKafkaWorker<TMessage>(string groupId)
         {
-            _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
-                new KafkaWorker<TMessage>(
-                    groupId,
-                    consumerId,
-                    _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
-                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp),
-                    () => (IntakeScope<TMessage>)_internalRegistry.IntakeScopeFactories[groupId](sp),
+            _internalRegistry.KafkaIntakeFactories[groupId] = (sp, consumer) =>
+            {
+                var serviceScope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
+                var scopedSp = serviceScope.ServiceProvider;
+                var intake = new KafkaIntake<TMessage>(
+                    (IKafkaConsumer<TMessage>)consumer,
+                    () => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
+                    () => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
+                    () =>
+                    {
+                        var filterProviders = _internalRegistry.KafkaPartitionMessagesFilterProviders;
+                        return new KafkaIntakeFilter<TMessage>(
+                            filterProviders.ContainsKey(groupId)
+                                ? (IKafkaPartitionMessagesFilter<TMessage>)filterProviders[groupId](scopedSp)
+                                : null,
+                            scopedSp.GetRequiredService<ILogger<KafkaIntakeFilter<TMessage>>>());
+                    },
+                    () => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp),
                     () => (IKafkaProducer<TMessage>)_internalRegistry.DeadLetterProducerProviders[groupId].Invoke(sp),
+                    _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
+                    scopedSp.GetRequiredService<ILogger<KafkaIntake<TMessage>>>());
+                return new KafkaIntakeDecorator(serviceScope, intake);
+            };
+
+            _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerName) =>
+                new KafkaWorker<TMessage>(
+                    consumerName,
+                    _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
+                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerName),
+                    consumer => (IKafkaIntake)_internalRegistry.KafkaIntakeFactories[groupId](sp, consumer),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
         }
 

@@ -1,9 +1,7 @@
 ﻿using Kafka.EventLoop.Configuration;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
-using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Exceptions;
-using Kafka.EventLoop.Produce;
 using Microsoft.Extensions.Logging;
 
 namespace Kafka.EventLoop.Core
@@ -13,25 +11,21 @@ namespace Kafka.EventLoop.Core
         private readonly string _consumerName;
         private readonly ErrorHandlingConfig? _errorHandlingConfig;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
-        private readonly Func<IIntakeScope<TMessage>> _intakeScopeFactory;
-        private readonly Func<IKafkaProducer<TMessage>> _kafkaDeadLetterProducerProvider;
+        private readonly Func<IKafkaConsumer<TMessage>, IKafkaIntake> _kafkaIntakeFactory;
         private readonly ILogger<KafkaWorker<TMessage>> _logger;
         private int _isRunning;
 
         public KafkaWorker(
-            string groupId,
-            int consumerId,
+            string consumerName,
             ErrorHandlingConfig? errorHandlingConfig,
             Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
-            Func<IIntakeScope<TMessage>> intakeScopeFactory,
-            Func<IKafkaProducer<TMessage>> kafkaDeadLetterProducerProvider,
+            Func<IKafkaConsumer<TMessage>, IKafkaIntake> kafkaIntakeFactory,
             ILogger<KafkaWorker<TMessage>> logger)
         {
-            _consumerName = $"{groupId}:{consumerId}";
+            _consumerName = consumerName;
             _errorHandlingConfig = errorHandlingConfig;
             _kafkaConsumerFactory = kafkaConsumerFactory;
-            _intakeScopeFactory = intakeScopeFactory;
-            _kafkaDeadLetterProducerProvider = kafkaDeadLetterProducerProvider;
+            _kafkaIntakeFactory = kafkaIntakeFactory;
             _logger = logger;
         }
 
@@ -125,104 +119,13 @@ namespace Kafka.EventLoop.Core
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    using var intakeScope = _intakeScopeFactory();
-                    using var intakeStrategy = intakeScope.CreateIntakeStrategy();
-                    var intakeThrottle = intakeScope.GetIntakeThrottle();
-
-                    await intakeThrottle.ControlSpeedAsync(async () =>
-                    {
-                        var messages = consumer.CollectMessages(intakeStrategy, cancellationToken);
-                        if (!messages.Any())
-                        {
-                            return ThrottleOptions.Empty;
-                        }
-
-                        var intakeFilter = intakeScope.GetIntakeFilter();
-                        var result = intakeFilter.FilterMessages(messages);
-
-                        var assignment = await consumer.GetCurrentAssignmentAsync(cancellationToken);
-
-                        await ProcessMessagesAsync(intakeScope, result.Messages, cancellationToken);
-
-                        await consumer.CommitAsync(result.Messages, cancellationToken);
-
-                        if (result.PartitionToLastAllowedOffset != null)
-                        {
-                            // if some offsets weren't committed
-                            // we need to seek consumer back
-                            // so that filtered out messages are consumed again the next iteration
-                            await consumer.SeekAsync(result.PartitionToLastAllowedOffset, cancellationToken);
-                        }
-
-                        return new ThrottleOptions(assignment.Count, result.Messages.Length);
-                    }, cancellationToken);
+                    using var intake = _kafkaIntakeFactory(consumer);
+                    await intake.ExecuteAsync(cancellationToken);
                 }
             }
             finally
             {
                 await consumer.CloseAsync(cancellationToken);
-            }
-        }
-
-        private async Task ProcessMessagesAsync(
-            IIntakeScope<TMessage> intakeScope,
-            MessageInfo<TMessage>[] messages,
-            CancellationToken cancellationToken)
-        {
-            var controller = intakeScope.GetController();
-            try
-            {
-                await controller.ProcessAsync(messages, cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (ProcessingException ex) when(ex.ErrorCode == ProcessingErrorCode.TransientError)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                var deadLetteringConfig = _errorHandlingConfig?.Critical?.DeadLettering;
-                if (deadLetteringConfig == null)
-                    throw;
-
-                await SendDeadLetterMessagesAsync(
-                    messages,
-                    deadLetteringConfig,
-                    ex,
-                    cancellationToken);
-            }
-        }
-
-        private async Task SendDeadLetterMessagesAsync(
-            MessageInfo<TMessage>[] deadLetters,
-            DeadLetteringConfig deadLetteringConfig,
-            Exception exception,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogCritical(exception, "Critical error while processing messages in consumer {ConsumerName}", _consumerName);
-                _logger.LogWarning(
-                    "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                    deadLetters.Length, _consumerName);
-
-                var producer = _kafkaDeadLetterProducerProvider();
-                await producer.SendMessagesAsync(
-                    deadLetters.Select(m => m.Value).ToArray(),
-                    deadLetteringConfig.SendSequentially,
-                    null,
-                    cancellationToken);
-
-                _logger.LogInformation(
-                    "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                    deadLetters.Length, _consumerName);
-            }
-            catch (ProduceException ex)
-            {
-                throw new DeadLetteringFailedException(deadLetteringConfig.OnDeadLetteringFailed, ex);
             }
         }
     }
