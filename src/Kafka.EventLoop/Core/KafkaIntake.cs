@@ -10,6 +10,7 @@ namespace Kafka.EventLoop.Core
     internal class KafkaIntake<TMessage> : IKafkaIntake
     {
         private readonly IKafkaConsumer<TMessage> _consumer;
+        private readonly KafkaIntakeObserver<TMessage>? _intakeObserver;
         private readonly IKafkaIntakeStrategy<TMessage> _intakeStrategy;
         private readonly IKafkaIntakeThrottle _intakeThrottle;
         private readonly Func<IKafkaIntakeFilter<TMessage>> _intakeFilterProvider;
@@ -20,6 +21,7 @@ namespace Kafka.EventLoop.Core
 
         public KafkaIntake(
             IKafkaConsumer<TMessage> consumer,
+            Func<KafkaIntakeObserver<TMessage>?> intakeObserverFactory,
             Func<IKafkaIntakeStrategy<TMessage>> intakeStrategyFactory,
             Func<IKafkaIntakeThrottle> intakeThrottleProvider,
             Func<IKafkaIntakeFilter<TMessage>> intakeFilterProvider,
@@ -29,6 +31,7 @@ namespace Kafka.EventLoop.Core
             ILogger<KafkaIntake<TMessage>> logger)
         {
             _consumer = consumer;
+            _intakeObserver = intakeObserverFactory();
             _intakeStrategy = intakeStrategyFactory();
             _intakeThrottle = intakeThrottleProvider();
             _intakeFilterProvider = intakeFilterProvider;
@@ -48,6 +51,7 @@ namespace Kafka.EventLoop.Core
         public void Dispose()
         {
             _intakeStrategy.Dispose();
+            _intakeObserver?.Dispose();
         }
 
         private async Task<ThrottleOptions> ExecuteInternalAsync(CancellationToken cancellationToken)
@@ -55,17 +59,21 @@ namespace Kafka.EventLoop.Core
             var messages = _consumer.CollectMessages(_intakeStrategy, cancellationToken);
             if (!messages.Any())
             {
+                _intakeObserver?.OnNothingToProcess();
                 return ThrottleOptions.Empty;
             }
+            _intakeObserver?.OnMessagesCollected(messages);
 
             var intakeFilter = _intakeFilterProvider();
             var result = intakeFilter.FilterMessages(messages);
+            _intakeObserver?.OnMessagesFiltered(result.Messages);
 
             var assignment = await _consumer.GetCurrentAssignmentAsync(cancellationToken);
 
             await ProcessMessagesAsync(result.Messages, cancellationToken);
 
             await _consumer.CommitAsync(result.Messages, cancellationToken);
+            _intakeObserver?.OnCommitted();
 
             if (result.PartitionToLastAllowedOffset != null)
             {
@@ -86,6 +94,7 @@ namespace Kafka.EventLoop.Core
             try
             {
                 await controller.ProcessAsync(messages, cancellationToken);
+                _intakeObserver?.OnProcessingFinished();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -93,10 +102,12 @@ namespace Kafka.EventLoop.Core
             }
             catch (ProcessingException ex) when (ex.ErrorCode == ProcessingErrorCode.TransientError)
             {
+                _intakeObserver?.OnProcessingException(ex);
                 throw;
             }
             catch (Exception ex)
             {
+                _intakeObserver?.OnProcessingException(ex);
                 var deadLetteringConfig = _errorHandlingConfig?.Critical?.DeadLettering;
                 if (deadLetteringConfig == null)
                     throw;
@@ -132,9 +143,11 @@ namespace Kafka.EventLoop.Core
                 _logger.LogInformation(
                     "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
                     deadLetters.Length, _consumer.Name);
+                _intakeObserver?.OnDeadLetteringFinished();
             }
             catch (ProduceException ex)
             {
+                _intakeObserver?.OnDeadLetteringFailed(ex);
                 throw new DeadLetteringFailedException(deadLetteringConfig.OnDeadLetteringFailed, ex);
             }
         }

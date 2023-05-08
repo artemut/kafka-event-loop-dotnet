@@ -7,6 +7,7 @@ namespace Kafka.EventLoop.DependencyInjection
     {
         void AddJsonMessageDeserializer<TMessage>(string groupId);
         void AddCustomMessageDeserializer<TDeserializer>(string groupId) where TDeserializer : class;
+        void AddCustomIntakeObserver<TObserver>(string groupId) where TObserver : class;
         void AddFixedSizeIntakeStrategy<TMessage>(string groupId, FixedSizeIntakeStrategyConfig config);
         void AddFixedIntervalIntakeStrategy<TMessage>(string groupId, FixedIntervalIntakeStrategyConfig config);
         void AddMaxSizeWithTimeoutIntakeStrategy<TMessage>(string groupId, MaxSizeWithTimeoutIntakeStrategyConfig config);

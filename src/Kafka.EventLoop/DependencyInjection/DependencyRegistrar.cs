@@ -48,6 +48,17 @@ namespace Kafka.EventLoop.DependencyInjection
                     $"Error in custom message deserialization for consumer group {groupId}");
         }
 
+        public void AddCustomIntakeObserver<TObserver>(string groupId) where TObserver : class
+        {
+            if (_externalRegistry.All(s => s.ImplementationType != typeof(TObserver)))
+            {
+                _externalRegistry.AddScoped<TObserver>();
+            }
+            _internalRegistry.KafkaIntakeObserverFactories[groupId] =
+                sp => sp.GetOrThrow<TObserver>(
+                    $"Error in custom intake observer for consumer group {groupId}");
+        }
+
         public void AddFixedSizeIntakeStrategy<TMessage>(string groupId, FixedSizeIntakeStrategyConfig config)
         {
             _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
@@ -220,6 +231,13 @@ namespace Kafka.EventLoop.DependencyInjection
                 var scopedSp = serviceScope.ServiceProvider;
                 var intake = new KafkaIntake<TMessage>(
                     (IKafkaConsumer<TMessage>)consumer,
+                    () =>
+                    {
+                        var factories = _internalRegistry.KafkaIntakeObserverFactories;
+                        return (KafkaIntakeObserver<TMessage>?)(factories.ContainsKey(groupId)
+                            ? factories[groupId](scopedSp)
+                            : null);
+                    },
                     () => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
                     () => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
                     () =>

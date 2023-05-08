@@ -18,6 +18,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private bool _hasCustomIntakeStrategyType;
         private bool _hasCustomPartitionMessagesFilterType;
         private bool _hasControllerType;
+        private bool _hasCustomIntakeObserverType;
         private Type? _controllerType;
         private IDeadLetteringOptions? _deadLetteringOptions;
         private IStreamingOptions? _streamingOptions;
@@ -204,9 +205,15 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
-            where TObserver : IKafkaIntakeObserver<TMessage>
+            where TObserver : KafkaIntakeObserver<TMessage>
         {
-            // todo:
+            if (_hasCustomIntakeObserverType)
+            {
+                throw new InvalidOptionsException(
+                    $"Custom intake observer is already specified for consumer group {_groupId}");
+            }
+            _dependencyRegistrar.AddCustomIntakeObserver<TObserver>(_groupId);
+            _hasCustomIntakeObserverType = true;
             return this;
         }
 
@@ -264,7 +271,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Controller of type {_controllerType?.Name} must be a kafka streaming controller " +
                     $"when using streaming for consumer group {_groupId}");
             }
-
+            
             _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);
 
             _confluentConfig.GroupId = _groupId;
@@ -272,8 +279,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _confluentConfig.EnableAutoCommit = false;
             _confluentConfig.EnableAutoOffsetStore = false;
             _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId, _confluentConfig);
-
-            _dependencyRegistrar.AddIntakeScope<TMessage>(_groupId);
+            
             _dependencyRegistrar.AddKafkaWorker<TMessage>(_groupId);
 
             return new ConsumerGroupOptions(_groupId);

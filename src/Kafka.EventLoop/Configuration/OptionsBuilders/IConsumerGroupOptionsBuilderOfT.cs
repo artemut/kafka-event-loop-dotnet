@@ -31,7 +31,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasKafkaConfig(Action<ConsumerConfig> kafkaConfig);
 
         IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
-            where TObserver : IKafkaIntakeObserver<TMessage>;
+            where TObserver : KafkaIntakeObserver<TMessage>;
 
         IConsumerGroupOptions Build();
     }
