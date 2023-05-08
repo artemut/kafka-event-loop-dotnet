@@ -1,4 +1,5 @@
-﻿using Kafka.EventLoop.Configuration.ConfigTypes;
+﻿using Confluent.Kafka;
+using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.Consume.Filtration;
 using Kafka.EventLoop.Exceptions;
@@ -56,7 +57,17 @@ namespace Kafka.EventLoop.Core
 
         private async Task<ThrottleOptions> ExecuteInternalAsync(CancellationToken cancellationToken)
         {
-            var messages = _consumer.CollectMessages(_intakeStrategy, cancellationToken);
+            MessageInfo<TMessage>[] messages;
+            try
+            {
+                messages = _consumer.CollectMessages(_intakeStrategy, cancellationToken);
+            }
+            catch (ConnectivityException ex)
+            {
+                _intakeObserver?.OnConsumeError(ex.Error);
+                throw;
+            }
+
             if (!messages.Any())
             {
                 _intakeObserver?.OnNothingToProcess();
@@ -64,24 +75,50 @@ namespace Kafka.EventLoop.Core
             }
             _intakeObserver?.OnMessagesCollected(messages);
 
+            List<TopicPartition> assignment;
+            try
+            {
+                assignment = await _consumer.GetCurrentAssignmentAsync(cancellationToken);
+            }
+            catch (ConnectivityException ex)
+            {
+                _intakeObserver?.OnConsumeError(ex.Error);
+                throw;
+            }
+
             var intakeFilter = _intakeFilterProvider();
             var result = intakeFilter.FilterMessages(messages);
             _intakeObserver?.OnMessagesFiltered(result.Messages);
 
-            var assignment = await _consumer.GetCurrentAssignmentAsync(cancellationToken);
-
             await ProcessMessagesAsync(result.Messages, cancellationToken);
 
-            await _consumer.CommitAsync(result.Messages, cancellationToken);
-            _intakeObserver?.OnCommitted();
+            try
+            {
+                await _consumer.CommitAsync(result.Messages, cancellationToken);
+            }
+            catch (ConnectivityException ex)
+            {
+                _intakeObserver?.OnCommitError(ex.Error);
+                throw;
+            }
 
             if (result.PartitionToLastAllowedOffset != null)
             {
                 // if some offsets weren't committed
                 // we need to seek consumer back
                 // so that filtered out messages are consumed again the next iteration
-                await _consumer.SeekAsync(result.PartitionToLastAllowedOffset, cancellationToken);
+                try
+                {
+                    await _consumer.SeekAsync(result.PartitionToLastAllowedOffset, cancellationToken);
+                }
+                catch (ConnectivityException ex)
+                {
+                    _intakeObserver?.OnCommitError(ex.Error);
+                    throw;
+                }
             }
+
+            _intakeObserver?.OnCommitted();
 
             return new ThrottleOptions(assignment.Count, result.Messages.Length);
         }
@@ -94,7 +131,6 @@ namespace Kafka.EventLoop.Core
             try
             {
                 await controller.ProcessAsync(messages, cancellationToken);
-                _intakeObserver?.OnProcessingFinished();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -117,7 +153,9 @@ namespace Kafka.EventLoop.Core
                     deadLetteringConfig,
                     ex,
                     cancellationToken);
+                return;
             }
+            _intakeObserver?.OnProcessingFinished();
         }
 
         private async Task SendDeadLetterMessagesAsync(
@@ -126,6 +164,7 @@ namespace Kafka.EventLoop.Core
             Exception exception,
             CancellationToken cancellationToken)
         {
+            _intakeObserver?.OnDeadLettering();
             try
             {
                 _logger.LogCritical(exception, "Critical error while processing messages in consumer {ConsumerName}", _consumer.Name);
@@ -143,13 +182,13 @@ namespace Kafka.EventLoop.Core
                 _logger.LogInformation(
                     "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
                     deadLetters.Length, _consumer.Name);
-                _intakeObserver?.OnDeadLetteringFinished();
             }
             catch (ProduceException ex)
             {
                 _intakeObserver?.OnDeadLetteringFailed(ex);
                 throw new DeadLetteringFailedException(deadLetteringConfig.OnDeadLetteringFailed, ex);
             }
+            _intakeObserver?.OnDeadLetteringFinished();
         }
     }
 }

@@ -1,13 +1,15 @@
-﻿namespace Kafka.EventLoop.Exceptions
+﻿using Confluent.Kafka;
+
+namespace Kafka.EventLoop.Exceptions
 {
     internal class ConnectivityException : Exception
     {
-        public ConnectivityException(string message, bool isFatal, Exception? innerException = null)
-            : base(message, innerException)
+        public ConnectivityException(string message, KafkaException kafkaException)
+            : base(message, kafkaException)
         {
-            IsFatal = isFatal;
+            Error = kafkaException.Error;
         }
 
-        public bool IsFatal { get; }
+        public Error Error { get; }
     }
 }

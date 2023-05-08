@@ -55,7 +55,7 @@ namespace Kafka.EventLoop.Core
                     _logger.LogError(ex, "Timeout error while running consumer {ConsumerName}", _consumerName);
                     isRetryable = true;
                 }
-                catch (ConnectivityException ex) when (!ex.IsFatal)
+                catch (ConnectivityException ex) when (!ex.Error.IsFatal)
                 {
                     _logger.LogError(ex, "Connectivity error while running consumer {ConsumerName}", _consumerName);
                     isRetryable = true;

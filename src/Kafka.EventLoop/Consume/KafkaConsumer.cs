@@ -40,8 +40,7 @@ namespace Kafka.EventLoop.Consume
             catch (KafkaException ex)
             {
                 throw new ConnectivityException(
-                    $"Error while subscribing to the topic {_consumerGroupConfig.TopicName}: {ex.Error.Code}",
-                    ex.Error.IsFatal, ex);
+                    $"Error while subscribing to the topic {_consumerGroupConfig.TopicName}: {ex.Error.Code}", ex);
             }
         }
 
@@ -73,8 +72,7 @@ namespace Kafka.EventLoop.Consume
                 catch (ConsumeException ex)
                 {
                     throw new ConnectivityException(
-                        $"Error while consuming messages from kafka: {ex.Error.Code}",
-                        ex.Error.IsFatal, ex);
+                        $"Error while consuming messages from kafka: {ex.Error.Code}", ex);
                 }
                 catch (OperationCanceledException) when (intakeStrategy.Token.IsCancellationRequested)
                 {
@@ -101,8 +99,7 @@ namespace Kafka.EventLoop.Consume
             catch (KafkaException ex)
             {
                 throw new ConnectivityException(
-                    $"Error while getting consumer assignment: {ex.Error.Code}",
-                    ex.Error.IsFatal, ex);
+                    $"Error while getting consumer assignment: {ex.Error.Code}", ex);
             }
         }
 
@@ -127,8 +124,7 @@ namespace Kafka.EventLoop.Consume
             catch (KafkaException ex)
             {
                 throw new ConnectivityException(
-                    $"Error while committing offsets to kafka: {ex.Error.Code}",
-                    ex.Error.IsFatal, ex);
+                    $"Error while committing offsets to kafka: {ex.Error.Code}", ex);
             }
         }
 
@@ -156,8 +152,7 @@ namespace Kafka.EventLoop.Consume
             catch (KafkaException ex)
             {
                 throw new ConnectivityException(
-                    $"Error while seeking to offset on kafka: {ex.Error.Code}",
-                    ex.Error.IsFatal, ex);
+                    $"Error while seeking to offset on kafka: {ex.Error.Code}", ex);
             }
         }
 
@@ -175,8 +170,7 @@ namespace Kafka.EventLoop.Consume
             catch (KafkaException ex)
             {
                 throw new ConnectivityException(
-                    $"Error while closing kafka consumer: {ex.Error.Code}",
-                    ex.Error.IsFatal, ex);
+                    $"Error while closing kafka consumer: {ex.Error.Code}", ex);
             }
         }
 
