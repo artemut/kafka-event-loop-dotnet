@@ -10,6 +10,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IStreamingOptionsBuilder<TInMessage, TOutMessage> HasCustomOutMessageSerializer<TSerializer>()
             where TSerializer : class, ISerializer<TOutMessage>;
 
+        IStreamingOptionsBuilder<TInMessage, TOutMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfig);
+
         IStreamingOptions Build();
     }
 }

@@ -28,6 +28,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasStreaming<TOutMessage>(
             Func<IStreamingOptionsBuilder<TMessage, TOutMessage>, IStreamingOptions> options);
 
+        IConsumerGroupOptionsBuilder<TMessage> HasKafkaConfig(Action<ConsumerConfig> kafkaConfig);
+
         IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>;
 

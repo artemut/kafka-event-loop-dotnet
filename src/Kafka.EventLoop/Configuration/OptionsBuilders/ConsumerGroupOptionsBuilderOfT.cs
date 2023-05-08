@@ -12,6 +12,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly string _groupId;
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly ConsumerGroupConfig _consumerGroupConfig;
+        private readonly ConsumerConfig _confluentConfig;
         private bool _hasDeserializerType;
         private bool _hasCustomIntakeThrottleType;
         private bool _hasCustomIntakeStrategyType;
@@ -29,6 +30,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _groupId = groupId;
             _dependencyRegistrar = dependencyRegistrar;
             _consumerGroupConfig = consumerGroupConfig;
+            _confluentConfig = new ConsumerConfig();
         }
 
         public IConsumerGroupOptionsBuilder<TMessage> HasJsonMessageDeserializer()
@@ -168,6 +170,39 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
+        public IConsumerGroupOptionsBuilder<TMessage> HasKafkaConfig(Action<ConsumerConfig> kafkaConfigAction)
+        {
+            kafkaConfigAction(_confluentConfig);
+
+            if (!string.IsNullOrWhiteSpace(_confluentConfig.GroupId))
+            {
+                throw new InvalidOptionsException(
+                    $"Please do not set {nameof(_confluentConfig.GroupId)} value when specifying kafka config. " +
+                    $"Value is taken from the settings instead. Consumer group: {_groupId}");
+            }
+            if (!string.IsNullOrWhiteSpace(_confluentConfig.BootstrapServers))
+            {
+                throw new InvalidOptionsException(
+                    $"Please do not set {nameof(_confluentConfig.BootstrapServers)} value when specifying kafka config. " +
+                    $"Value is taken from the settings instead. Consumer group: {_groupId}");
+            }
+            if (_confluentConfig.EnableAutoCommit == true)
+            {
+                throw new InvalidOptionsException(
+                    $"You specified {nameof(_confluentConfig.EnableAutoCommit)}=true which is not supported. " +
+                    "Offsets are committed explicitly and after successful message processing only. " +
+                    $"Consumer group: {_groupId}");
+            }
+            if (_confluentConfig.EnableAutoOffsetStore == true)
+            {
+                throw new InvalidOptionsException(
+                    $"You specified {nameof(_confluentConfig.EnableAutoOffsetStore)}=true which is not supported. " +
+                    "Offsets are committed explicitly and after successful message processing only. " +
+                    $"Consumer group: {_groupId}");
+            }
+            return this;
+        }
+
         public IConsumerGroupOptionsBuilder<TMessage> HasCustomIntakeObserver<TObserver>()
             where TObserver : IKafkaIntakeObserver<TMessage>
         {
@@ -231,13 +266,13 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
 
             _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);
-            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId, new ConsumerConfig
-            {
-                GroupId = _groupId,
-                BootstrapServers = _consumerGroupConfig.ConnectionString,
-                AutoOffsetReset = _consumerGroupConfig.AutoOffsetReset,
-                EnableAutoCommit = false
-            });
+
+            _confluentConfig.GroupId = _groupId;
+            _confluentConfig.BootstrapServers = _consumerGroupConfig.ConnectionString;
+            _confluentConfig.EnableAutoCommit = false;
+            _confluentConfig.EnableAutoOffsetStore = false;
+            _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId, _confluentConfig);
+
             _dependencyRegistrar.AddIntakeScope<TMessage>(_groupId);
             _dependencyRegistrar.AddKafkaWorker<TMessage>(_groupId);
 

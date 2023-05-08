@@ -12,6 +12,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly string _groupId;
         private readonly StreamingConfig _config;
         private readonly IDependencyRegistrar _dependencyRegistrar;
+        private readonly ProducerConfig _confluentConfig;
         private bool _hasSerializerType;
 
         public StreamingOptionsBuilder(
@@ -22,6 +23,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _groupId = groupId;
             _config = config;
             _dependencyRegistrar = dependencyRegistrar;
+            _confluentConfig = new ProducerConfig();
         }
 
         public IStreamingOptionsBuilder<TInMessage, TOutMessage> HasJsonOutMessageSerializer()
@@ -49,6 +51,20 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
+        public IStreamingOptionsBuilder<TInMessage, TOutMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfigAction)
+        {
+            kafkaConfigAction(_confluentConfig);
+
+            if (!string.IsNullOrWhiteSpace(_confluentConfig.BootstrapServers))
+            {
+                throw new InvalidOptionsException(
+                    $"Please do not set {nameof(_confluentConfig.BootstrapServers)} value " +
+                    "when specifying kafka config for streaming. " +
+                    $"Value is taken from the settings instead. Consumer group: {_groupId}");
+            }
+            return this;
+        }
+
         public IStreamingOptions Build()
         {
             if (!_hasSerializerType)
@@ -56,26 +72,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Outgoing stream message serializer is not specified for consumer group {_groupId}");
             }
-
-            var confluentConfig = new ProducerConfig
-            {
-                BootstrapServers = _config.ConnectionString,
-                AllowAutoCreateTopics = false,
-                RequestTimeoutMs = _config.RequestTimeoutMs ?? Defaults.RequestTimeoutMs,
-                SocketTimeoutMs = _config.SocketTimeoutMs ?? Defaults.SocketTimeoutMs,
-                MessageTimeoutMs = _config.MessageTimeoutMs ?? Defaults.MessageTimeoutMs,
-                EnableDeliveryReports = true,
-                Acks = _config.AckLevel switch
-                {
-                    ProduceAckLevel.AllInSyncReplicas => Acks.All,
-                    null or ProduceAckLevel.LeaderReplica => Acks.Leader,
-                    _ => Acks.Leader
-                }
-            };
+            
+            _confluentConfig.BootstrapServers = _config.ConnectionString;
+            _confluentConfig.EnableDeliveryReports ??= true;
+            _confluentConfig.Acks ??= Acks.Leader;
             _dependencyRegistrar.AddStreamingProducer<TOutMessage>(
                 _groupId,
                 _config,
-                confluentConfig);
+                _confluentConfig);
 
             return new StreamingOptions();
         }

@@ -14,6 +14,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasCustomDeadLetterMessageSerializer<TSerializer>()
             where TSerializer : class, ISerializer<TMessage>;
 
+        IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfig);
+
         IDeadLetteringOptions Build();
     }
 }

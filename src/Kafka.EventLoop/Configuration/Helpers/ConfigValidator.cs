@@ -267,21 +267,6 @@ namespace Kafka.EventLoop.Configuration.Helpers
                 throw new ConfigValidationException(
                     nameof(config.TopicName), "Value must be provided");
             }
-            if (config.RequestTimeoutMs is <= 0)
-            {
-                throw new ConfigValidationException(
-                    nameof(config.RequestTimeoutMs), "Value must be greater than 0");
-            }
-            if (config.SocketTimeoutMs is <= 0)
-            {
-                throw new ConfigValidationException(
-                    nameof(config.SocketTimeoutMs), "Value must be greater than 0");
-            }
-            if (config.MessageTimeoutMs is <= 0)
-            {
-                throw new ConfigValidationException(
-                    nameof(config.MessageTimeoutMs), "Value must be greater than 0");
-            }
         }
 
         private static void ValidateNoDuplicates(ConsumerGroupConfig[] consumerGroups)

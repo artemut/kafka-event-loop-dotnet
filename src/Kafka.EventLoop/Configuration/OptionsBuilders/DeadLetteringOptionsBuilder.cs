@@ -13,6 +13,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly string _groupId;
         private readonly DeadLetteringConfig _config;
         private readonly IDependencyRegistrar _dependencyRegistrar;
+        private readonly ProducerConfig _confluentConfig;
         private bool _hasMessageKeyType;
         private bool _hasSerializerType;
 
@@ -24,6 +25,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _groupId = groupId;
             _config = config;
             _dependencyRegistrar = dependencyRegistrar;
+            _confluentConfig = new ProducerConfig();
         }
 
         public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasDeadLetterMessageKey(
@@ -64,6 +66,20 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
+        public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfigAction)
+        {
+            kafkaConfigAction(_confluentConfig);
+
+            if (!string.IsNullOrWhiteSpace(_confluentConfig.BootstrapServers))
+            {
+                throw new InvalidOptionsException(
+                    $"Please do not set {nameof(_confluentConfig.BootstrapServers)} value " +
+                    "when specifying kafka config for dead-lettering. " +
+                    $"Value is taken from the settings instead. Consumer group: {_groupId}");
+            }
+            return this;
+        }
+
         public IDeadLetteringOptions Build()
         {
             if (!_hasMessageKeyType)
@@ -76,26 +92,14 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Dead letter message serializer is not specified for consumer group {_groupId}");
             }
-
-            var confluentConfig = new ProducerConfig
-            {
-                BootstrapServers = _config.ConnectionString,
-                AllowAutoCreateTopics = false,
-                RequestTimeoutMs = _config.RequestTimeoutMs ?? Defaults.RequestTimeoutMs,
-                SocketTimeoutMs = _config.SocketTimeoutMs ?? Defaults.SocketTimeoutMs,
-                MessageTimeoutMs = _config.MessageTimeoutMs ?? Defaults.MessageTimeoutMs,
-                EnableDeliveryReports = true,
-                Acks = _config.AckLevel switch
-                {
-                    ProduceAckLevel.AllInSyncReplicas => Acks.All,
-                    null or ProduceAckLevel.LeaderReplica => Acks.Leader,
-                    _ => Acks.Leader
-                }
-            };
+            
+            _confluentConfig.BootstrapServers = _config.ConnectionString;
+            _confluentConfig.EnableDeliveryReports ??= true;
+            _confluentConfig.Acks ??= Acks.Leader;
             _dependencyRegistrar.AddDeadLetterProducer<TMessageKey, TMessage>(
                 _groupId,
                 _config,
-                confluentConfig);
+                _confluentConfig);
 
             return new DeadLetteringOptions();
         }

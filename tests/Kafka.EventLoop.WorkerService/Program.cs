@@ -28,7 +28,9 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasCustomThrottle<FooIntakeThrottle>()
                     .HasStreaming<FooEnrichedMessage>(sOptions => sOptions
                         .HasJsonOutMessageSerializer()
+                        .HasKafkaConfig(c => c.RequestTimeoutMs = 2000)
                         .Build())
+                    .HasKafkaConfig(c => c.AutoOffsetReset = AutoOffsetReset.Earliest)
                     .HasCustomIntakeObserver<FooIntakeObserver>()
                     .Build())
                 .HasConsumerGroup("bar-group", cgOptions => cgOptions
@@ -38,6 +40,7 @@ var host = Host.CreateDefaultBuilder(args)
                     .HasDeadLettering<string>(dlOptions => dlOptions
                         .HasDeadLetterMessageKey(x => x.Key)
                         .HasJsonDeadLetterMessageSerializer()
+                        .HasKafkaConfig(c => c.Acks = Acks.All)
                         .Build())
                     .Build())
                 .HasConsumerGroup("bar-dead-letters-group", cgOptions => cgOptions
