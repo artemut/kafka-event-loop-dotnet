@@ -7,12 +7,12 @@ namespace Kafka.EventLoop.Core
     internal class KafkaBackgroundService : BackgroundService
     {
         private readonly KafkaConfig _kafkaConfig;
-        private readonly Func<string, string, IKafkaWorker> _kafkaWorkerFactory;
+        private readonly Func<WorkerArgs, IKafkaWorker> _kafkaWorkerFactory;
         private readonly ILogger<KafkaBackgroundService> _logger;
 
         public KafkaBackgroundService(
             KafkaConfig kafkaConfig,
-            Func<string, string, IKafkaWorker> kafkaWorkerFactory,
+            Func<WorkerArgs, IKafkaWorker> kafkaWorkerFactory,
             ILogger<KafkaBackgroundService> logger)
         {
             _kafkaConfig = kafkaConfig;
@@ -33,7 +33,8 @@ namespace Kafka.EventLoop.Core
                 for (var i = 0; i < consumerGroup.ParallelConsumers; i++)
                 {
                     var consumerName = $"{consumerGroup.GroupId}:{i}";
-                    var worker = _kafkaWorkerFactory(consumerGroup.GroupId, consumerName);
+                    var workerArgs = new WorkerArgs(consumerGroup.GroupId, consumerName);
+                    var worker = _kafkaWorkerFactory(workerArgs);
                     workers.Add(worker);
                 }
             }

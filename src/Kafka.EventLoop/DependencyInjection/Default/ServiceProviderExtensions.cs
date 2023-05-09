@@ -1,7 +1,7 @@
 ﻿using Kafka.EventLoop.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Kafka.EventLoop.DependencyInjection
+namespace Kafka.EventLoop.DependencyInjection.Default
 {
     internal static class ServiceProviderExtensions
     {

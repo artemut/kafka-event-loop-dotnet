@@ -2,7 +2,7 @@
 using Kafka.EventLoop.Core;
 using Kafka.EventLoop.Utils;
 
-namespace Kafka.EventLoop.DependencyInjection
+namespace Kafka.EventLoop.DependencyInjection.Default
 {
     internal class DependencyRegistry
     {

@@ -46,7 +46,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Outgoing stream message serializer is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomStreamingMessageSerializer<TSerializer>(_groupId);
+            _dependencyRegistrar.AddCustomStreamingMessageSerializer<TSerializer, TOutMessage>(_groupId);
             _hasSerializerType = true;
             return this;
         }

@@ -12,7 +12,7 @@ using Kafka.EventLoop.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Kafka.EventLoop.DependencyInjection
+namespace Kafka.EventLoop.DependencyInjection.Default
 {
     /// <summary>
     /// The purpose of this class is to register the same types separately for each of the consumer group.
@@ -37,18 +37,20 @@ namespace Kafka.EventLoop.DependencyInjection
                 .MessageDeserializerProviders[groupId] = _ => new JsonDeserializer<TMessage>();
         }
 
-        public void AddCustomMessageDeserializer<TDeserializer>(string groupId) where TDeserializer : class
+        public void AddCustomMessageDeserializer<TDeserializer, TMessage>(string groupId)
+            where TDeserializer : class, IDeserializer<TMessage?>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TDeserializer)))
             {
                 _externalRegistry.AddTransient<TDeserializer>();
             }
-            _internalRegistry.MessageDeserializerProviders[groupId] = 
+            _internalRegistry.MessageDeserializerProviders[groupId] =
                 sp => sp.GetOrThrow<TDeserializer>(
                     $"Error in custom message deserialization for consumer group {groupId}");
         }
 
-        public void AddCustomIntakeObserver<TObserver>(string groupId) where TObserver : class
+        public void AddCustomIntakeObserver<TObserver, TMessage>(string groupId)
+            where TObserver : KafkaIntakeObserver<TMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TObserver)))
             {
@@ -61,13 +63,13 @@ namespace Kafka.EventLoop.DependencyInjection
 
         public void AddFixedSizeIntakeStrategy<TMessage>(string groupId, FixedSizeIntakeStrategyConfig config)
         {
-            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] =
                 _ => new FixedSizeIntakeStrategy<TMessage>(config.Size);
         }
 
         public void AddFixedIntervalIntakeStrategy<TMessage>(string groupId, FixedIntervalIntakeStrategyConfig config)
         {
-            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] =
                 _ => new FixedIntervalIntakeStrategy<TMessage>(config.IntervalInMs);
         }
 
@@ -77,18 +79,20 @@ namespace Kafka.EventLoop.DependencyInjection
                 _ => new MaxSizeWithTimeoutIntakeStrategy<TMessage>(config.MaxSize, config.TimeoutInMs);
         }
 
-        public void AddCustomIntakeStrategy<TStrategy>(string groupId) where TStrategy : class
+        public void AddCustomIntakeStrategy<TStrategy, TMessage>(string groupId)
+            where TStrategy : class, IKafkaIntakeStrategy<TMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TStrategy)))
             {
                 _externalRegistry.AddScoped<TStrategy>();
             }
-            _internalRegistry.KafkaIntakeStrategyFactories[groupId] = 
+            _internalRegistry.KafkaIntakeStrategyFactories[groupId] =
                 sp => sp.GetOrThrow<TStrategy>(
                     $"Error in custom intake strategy for consumer group {groupId}");
         }
 
-        public void AddCustomPartitionMessagesFilter<TFilter>(string groupId) where TFilter : class
+        public void AddCustomPartitionMessagesFilter<TFilter, TMessage>(string groupId)
+            where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TFilter)))
             {
@@ -108,24 +112,26 @@ namespace Kafka.EventLoop.DependencyInjection
             _internalRegistry.KafkaIntakeThrottleProviders[groupId] = _ => singleInstance;
         }
 
-        public void AddCustomIntakeThrottle<TThrottle>(string groupId) where TThrottle : class
+        public void AddCustomIntakeThrottle<TThrottle>(string groupId)
+            where TThrottle : class, IKafkaIntakeThrottle
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TThrottle)))
             {
                 _externalRegistry.AddScoped<TThrottle>();
             }
-            _internalRegistry.KafkaIntakeThrottleProviders[groupId] = 
+            _internalRegistry.KafkaIntakeThrottleProviders[groupId] =
                 sp => sp.GetOrThrow<TThrottle>(
                     $"Error in custom intake throttle for consumer group {groupId}");
         }
 
-        public void AddKafkaController<TController>(string groupId) where TController : class
+        public void AddKafkaController<TController, TMessage>(string groupId)
+            where TController : class, IKafkaController<TMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TController)))
             {
                 _externalRegistry.AddScoped<TController>();
             }
-            _internalRegistry.KafkaControllerProviders[groupId] = 
+            _internalRegistry.KafkaControllerProviders[groupId] =
                 sp => sp.GetOrThrow<TController>(
                     $"Error in message processing for consumer group {groupId}");
         }
@@ -156,7 +162,8 @@ namespace Kafka.EventLoop.DependencyInjection
                 .DeadLetterMessageSerializerProviders[groupId] = _ => new JsonSerializer<TMessage>();
         }
 
-        public void AddCustomDeadLetterMessageSerializer<TSerializer>(string groupId) where TSerializer : class
+        public void AddCustomDeadLetterMessageSerializer<TSerializer, TMessage>(string groupId)
+            where TSerializer : class, ISerializer<TMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
             {
@@ -185,7 +192,8 @@ namespace Kafka.EventLoop.DependencyInjection
                 .StreamingMessageSerializerProviders[groupId] = _ => new JsonSerializer<TOutMessage>();
         }
 
-        public void AddCustomStreamingMessageSerializer<TSerializer>(string groupId) where TSerializer : class
+        public void AddCustomStreamingMessageSerializer<TSerializer, TOutMessage>(string groupId)
+            where TSerializer : class, ISerializer<TOutMessage>
         {
             if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
             {
@@ -253,7 +261,7 @@ namespace Kafka.EventLoop.DependencyInjection
                     () => (IKafkaProducer<TMessage>)_internalRegistry.DeadLetterProducerProviders[groupId].Invoke(sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
                     scopedSp.GetRequiredService<ILogger<KafkaIntake<TMessage>>>());
-                return new KafkaIntakeDecorator(serviceScope, intake);
+                return new KafkaIntakeServiceScopeDecorator(serviceScope, intake);
             };
 
             _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerName) =>
@@ -263,6 +271,14 @@ namespace Kafka.EventLoop.DependencyInjection
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerName),
                     consumer => (IKafkaIntake)_internalRegistry.KafkaIntakeFactories[groupId](sp, consumer),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
+        }
+
+        public void AddKafkaService(KafkaConfig kafkaConfig)
+        {
+            _externalRegistry.AddHostedService(sp => new KafkaBackgroundService(
+                kafkaConfig,
+                workerArgs => _internalRegistry.KafkaWorkerFactories[workerArgs.GroupId](sp, workerArgs.ConsumerName),
+                sp.GetRequiredService<ILogger<KafkaBackgroundService>>()));
         }
 
         private IConsumer<Ignore, TMessage> BuildConfluentConsumer<TMessage>(

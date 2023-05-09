@@ -61,7 +61,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Dead letter message serializer is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomDeadLetterMessageSerializer<TSerializer>(_groupId);
+            _dependencyRegistrar.AddCustomDeadLetterMessageSerializer<TSerializer, TMessage>(_groupId);
             _hasSerializerType = true;
             return this;
         }

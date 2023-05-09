@@ -54,7 +54,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Message deserializer is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer>(_groupId);
+            _dependencyRegistrar.AddCustomMessageDeserializer<TDeserializer, TMessage>(_groupId);
             _hasDeserializerType = true;
             return this;
         }
@@ -74,7 +74,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Custom intake strategy is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy>(_groupId);
+            _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy, TMessage>(_groupId);
             _hasCustomIntakeStrategyType = true;
             return this;
         }
@@ -87,7 +87,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Custom partition messages filter is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomPartitionMessagesFilter<TFilter>(_groupId);
+            _dependencyRegistrar.AddCustomPartitionMessagesFilter<TFilter, TMessage>(_groupId);
             _hasCustomPartitionMessagesFilterType = true;
             return this;
         }
@@ -113,7 +113,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Controller is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddKafkaController<TController>(_groupId);
+            _dependencyRegistrar.AddKafkaController<TController, TMessage>(_groupId);
             _hasControllerType = true;
             _controllerType = typeof(TController);
             return this;
@@ -212,7 +212,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Custom intake observer is already specified for consumer group {_groupId}");
             }
-            _dependencyRegistrar.AddCustomIntakeObserver<TObserver>(_groupId);
+            _dependencyRegistrar.AddCustomIntakeObserver<TObserver, TMessage>(_groupId);
             _hasCustomIntakeObserverType = true;
             return this;
         }

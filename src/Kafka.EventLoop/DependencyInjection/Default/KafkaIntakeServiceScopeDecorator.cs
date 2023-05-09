@@ -1,14 +1,14 @@
 ﻿using Kafka.EventLoop.Core;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Kafka.EventLoop.DependencyInjection
+namespace Kafka.EventLoop.DependencyInjection.Default
 {
-    internal class KafkaIntakeDecorator : IKafkaIntake
+    internal class KafkaIntakeServiceScopeDecorator : IKafkaIntake
     {
         private readonly IServiceScope _serviceScope;
         private readonly IKafkaIntake _innerIntake;
 
-        public KafkaIntakeDecorator(IServiceScope serviceScope, IKafkaIntake innerIntake)
+        public KafkaIntakeServiceScopeDecorator(IServiceScope serviceScope, IKafkaIntake innerIntake)
         {
             _serviceScope = serviceScope;
             _innerIntake = innerIntake;
