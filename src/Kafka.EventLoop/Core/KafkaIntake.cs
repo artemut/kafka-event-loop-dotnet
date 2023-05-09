@@ -167,10 +167,10 @@ namespace Kafka.EventLoop.Core
             _intakeObserver?.OnDeadLettering();
             try
             {
-                _logger.LogCritical(exception, "Critical error while processing messages in consumer {ConsumerName}", _consumer.Name);
+                _logger.LogCritical(exception, "Critical error while processing messages in consumer {ConsumerId}", _consumer.ConsumerId);
                 _logger.LogWarning(
-                    "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                    deadLetters.Length, _consumer.Name);
+                    "Sending {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerId}",
+                    deadLetters.Length, _consumer.ConsumerId);
 
                 var producer = _kafkaDeadLetterProducerProvider();
                 await producer.SendMessagesAsync(
@@ -180,8 +180,8 @@ namespace Kafka.EventLoop.Core
                     cancellationToken);
 
                 _logger.LogInformation(
-                    "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerName}",
-                    deadLetters.Length, _consumer.Name);
+                    "Successfully sent {MessageCount} message(s) to the dead-letter topic for consumer {ConsumerId}",
+                    deadLetters.Length, _consumer.ConsumerId);
             }
             catch (ProduceException ex)
             {

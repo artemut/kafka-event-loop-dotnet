@@ -4,7 +4,7 @@ namespace Kafka.EventLoop.Consume
 {
     internal interface IKafkaConsumer<TMessage> : IDisposable
     {
-        string Name { get; }
+        ConsumerId ConsumerId { get; }
 
         Task SubscribeAsync(CancellationToken cancellationToken);
 

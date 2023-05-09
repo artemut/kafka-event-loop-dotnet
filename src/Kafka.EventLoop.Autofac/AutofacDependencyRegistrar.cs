@@ -265,21 +265,24 @@ namespace Kafka.EventLoop.Autofac
                 .Named<IKafkaIntake>(groupId);
 
             _builder
-                .Register<string, IKafkaWorker>((ctx, consumerName) =>
+                .Register<ConsumerId, IKafkaWorker>((ctx, consumerId) =>
                 {
                     var newCtx = ctx.Resolve<IComponentContext>();
                     return new KafkaWorker<TMessage>(
-                        consumerName,
+                        consumerId,
                         ctx.ResolveNamed<ConsumerGroupConfig>(groupId).ErrorHandling,
-                        () => newCtx.ResolveNamed<Func<string, IKafkaConsumer<TMessage>>>(groupId)(consumerName),
+                        () => newCtx.ResolveNamed<Func<ConsumerId, IKafkaConsumer<TMessage>>>(groupId)(consumerId),
                         consumer => newCtx.ResolveNamed<Func<IKafkaConsumer<TMessage>, IKafkaIntake>>(groupId)(consumer),
                         ctx.Resolve<ILogger<KafkaWorker<TMessage>>>());
                 })
                 .Named<IKafkaWorker>(groupId);
 
             _builder
-                .Register<WorkerArgs, IKafkaWorker>((ctx, workerArgs) =>
-                    ctx.ResolveNamed<Func<string, IKafkaWorker>>(workerArgs.GroupId)(workerArgs.ConsumerName));
+                .Register<Func<ConsumerId, IKafkaWorker>>(ctx =>
+                {
+                    var newCtx = ctx.Resolve<IComponentContext>();
+                    return consumerId => newCtx.ResolveNamed<Func<ConsumerId, IKafkaWorker>>(consumerId.GroupId)(consumerId);
+                });
         }
 
         public void AddKafkaService(KafkaConfig kafkaConfig)

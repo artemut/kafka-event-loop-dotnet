@@ -143,9 +143,9 @@ namespace Kafka.EventLoop.DependencyInjection.Default
 
         public void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig)
         {
-            _internalRegistry.KafkaConsumerFactories[groupId] = (sp, consumerName) =>
+            _internalRegistry.KafkaConsumerFactories[groupId] = (sp, consumerId) =>
                 new KafkaConsumer<TMessage>(
-                    consumerName,
+                    consumerId,
                     BuildConfluentConsumer<TMessage>(groupId, confluentConfig, sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId],
                     new TimeoutRunner());
@@ -264,11 +264,11 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                 return new KafkaIntakeServiceScopeDecorator(serviceScope, intake);
             };
 
-            _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerName) =>
+            _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
                 new KafkaWorker<TMessage>(
-                    consumerName,
+                    consumerId,
                     _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
-                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerName),
+                    () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerId),
                     consumer => (IKafkaIntake)_internalRegistry.KafkaIntakeFactories[groupId](sp, consumer),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
         }
@@ -277,7 +277,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         {
             _externalRegistry.AddHostedService(sp => new KafkaBackgroundService(
                 kafkaConfig,
-                workerArgs => _internalRegistry.KafkaWorkerFactories[workerArgs.GroupId](sp, workerArgs.ConsumerName),
+                consumerId => _internalRegistry.KafkaWorkerFactories[consumerId.GroupId](sp, consumerId),
                 sp.GetRequiredService<ILogger<KafkaBackgroundService>>()));
         }
 
