@@ -16,7 +16,7 @@ namespace Kafka.EventLoop.WorkerService.Custom
 
         public void OnNewMessageConsumed(MessageInfo<FooMessage> messageInfo)
         {
-            if (++_counter >= 10)
+            if (++_counter >= 5)
                 _cts.Cancel();
         }
 

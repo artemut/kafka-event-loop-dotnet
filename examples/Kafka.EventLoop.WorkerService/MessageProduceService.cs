@@ -11,7 +11,7 @@ namespace Kafka.EventLoop.WorkerService
         // 1 - foo only
         // 2 - bar only
         // 3 - both
-        private const int SendType = 1;
+        private const int SendType = 2;
         private const int MaxMessageCount = 10;
 
         private readonly IFixture _fixture;

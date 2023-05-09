@@ -11,15 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "unit", "unit", "{77578617-F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "integration", "integration", "{D39B573F-9F5B-43CB-BDDA-8B260949CC16}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "system", "system", "{8A5A0B15-36C7-4DA7-B9D2-08A672890765}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.WorkerService", "tests\Kafka.EventLoop.WorkerService\Kafka.EventLoop.WorkerService.csproj", "{10D70C9D-9E44-4082-99F9-367A2B99F0A1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.Tests", "tests\Kafka.EventLoop.Tests\Kafka.EventLoop.Tests.csproj", "{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.IntegrationTests", "tests\Kafka.EventLoop.IntegrationTests\Kafka.EventLoop.IntegrationTests.csproj", "{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kafka.EventLoop.Autofac", "src\Kafka.EventLoop.Autofac\Kafka.EventLoop.Autofac.csproj", "{FA84D220-D575-4664-BC97-BAF47E07A1D3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.Autofac", "src\Kafka.EventLoop.Autofac\Kafka.EventLoop.Autofac.csproj", "{FA84D220-D575-4664-BC97-BAF47E07A1D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{61E86F3D-0799-449D-A4AB-1E3488313DCB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.WorkerService", "examples\Kafka.EventLoop.WorkerService\Kafka.EventLoop.WorkerService.csproj", "{B0345B70-9090-41C5-81C8-AB8DB72BB9D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,10 +31,6 @@ Global
 		{B9103A76-71B3-4449-93E9-BEC564459497}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9103A76-71B3-4449-93E9-BEC564459497}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9103A76-71B3-4449-93E9-BEC564459497}.Release|Any CPU.Build.0 = Release|Any CPU
-		{10D70C9D-9E44-4082-99F9-367A2B99F0A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{10D70C9D-9E44-4082-99F9-367A2B99F0A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{10D70C9D-9E44-4082-99F9-367A2B99F0A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{10D70C9D-9E44-4082-99F9-367A2B99F0A1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -47,6 +43,10 @@ Global
 		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0345B70-9090-41C5-81C8-AB8DB72BB9D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0345B70-9090-41C5-81C8-AB8DB72BB9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0345B70-9090-41C5-81C8-AB8DB72BB9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0345B70-9090-41C5-81C8-AB8DB72BB9D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,10 +54,9 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{77578617-F4E9-4079-AA6B-4DC73B521826} = {7F4ED757-9D35-4A83-B23A-390A609570FB}
 		{D39B573F-9F5B-43CB-BDDA-8B260949CC16} = {7F4ED757-9D35-4A83-B23A-390A609570FB}
-		{8A5A0B15-36C7-4DA7-B9D2-08A672890765} = {7F4ED757-9D35-4A83-B23A-390A609570FB}
-		{10D70C9D-9E44-4082-99F9-367A2B99F0A1} = {8A5A0B15-36C7-4DA7-B9D2-08A672890765}
 		{8DD35C2B-C121-43EF-A388-D2AA1CD0852A} = {77578617-F4E9-4079-AA6B-4DC73B521826}
 		{76866CDB-662B-4B86-BDB8-7F9AD59D5F37} = {D39B573F-9F5B-43CB-BDDA-8B260949CC16}
+		{B0345B70-9090-41C5-81C8-AB8DB72BB9D8} = {61E86F3D-0799-449D-A4AB-1E3488313DCB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F24127F1-81E3-4334-ABE4-9D415CC156F7}
