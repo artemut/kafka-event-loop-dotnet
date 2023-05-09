@@ -15,9 +15,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "system", "system", "{8A5A0B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.WorkerService", "tests\Kafka.EventLoop.WorkerService\Kafka.EventLoop.WorkerService.csproj", "{10D70C9D-9E44-4082-99F9-367A2B99F0A1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kafka.EventLoop.Tests", "tests\Kafka.EventLoop.Tests\Kafka.EventLoop.Tests.csproj", "{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.Tests", "tests\Kafka.EventLoop.Tests\Kafka.EventLoop.Tests.csproj", "{8DD35C2B-C121-43EF-A388-D2AA1CD0852A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kafka.EventLoop.IntegrationTests", "tests\Kafka.EventLoop.IntegrationTests\Kafka.EventLoop.IntegrationTests.csproj", "{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kafka.EventLoop.IntegrationTests", "tests\Kafka.EventLoop.IntegrationTests\Kafka.EventLoop.IntegrationTests.csproj", "{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kafka.EventLoop.Autofac", "src\Kafka.EventLoop.Autofac\Kafka.EventLoop.Autofac.csproj", "{FA84D220-D575-4664-BC97-BAF47E07A1D3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,10 @@ Global
 		{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76866CDB-662B-4B86-BDB8-7F9AD59D5F37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA84D220-D575-4664-BC97-BAF47E07A1D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
