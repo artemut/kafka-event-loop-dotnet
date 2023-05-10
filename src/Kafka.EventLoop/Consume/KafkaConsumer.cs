@@ -53,6 +53,7 @@ namespace Kafka.EventLoop.Consume
             {
                 try
                 {
+                    intakeStrategy.OnConsumeStarting();
                     while (true)
                     {
                         var result = _consumer.Consume(linkedCts.Token);

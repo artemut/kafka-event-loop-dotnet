@@ -9,10 +9,15 @@ namespace Kafka.EventLoop.WorkerService.Custom
 
         public FooIntakeStrategy()
         {
-            _cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            _cts = new CancellationTokenSource();
         }
 
         public CancellationToken Token => _cts.Token;
+
+        public void OnConsumeStarting()
+        {
+            _cts.CancelAfter(TimeSpan.FromSeconds(10));
+        }
 
         public void OnNewMessageConsumed(MessageInfo<FooMessage> messageInfo)
         {

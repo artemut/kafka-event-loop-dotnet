@@ -14,6 +14,10 @@
 
         public CancellationToken Token => _cts.Token;
 
+        public void OnConsumeStarting()
+        {
+        }
+
         public void OnNewMessageConsumed(MessageInfo<TMessage> messageInfo)
         {
             if (++_currentSize >= _size)
