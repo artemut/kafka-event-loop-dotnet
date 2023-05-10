@@ -156,7 +156,7 @@ namespace Kafka.EventLoop.Consume
             }
         }
 
-        public async Task CloseAsync(CancellationToken cancellationToken)
+        public async Task CloseAsync()
         {
             var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.CloseTimeoutMs ?? Defaults.CloseTimeoutMs);
             try
@@ -165,7 +165,7 @@ namespace Kafka.EventLoop.Consume
                     () => _consumer.Close(),
                     timeout,
                     $"Wasn't able to close the client within configured timeout {timeout}",
-                    cancellationToken);
+                    CancellationToken.None);
             }
             catch (KafkaException ex)
             {

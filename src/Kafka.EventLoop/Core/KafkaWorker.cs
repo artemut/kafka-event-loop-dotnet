@@ -129,7 +129,7 @@ namespace Kafka.EventLoop.Core
             }
             finally
             {
-                await consumer.CloseAsync(cancellationToken);
+                await consumer.CloseAsync();
             }
         }
     }
