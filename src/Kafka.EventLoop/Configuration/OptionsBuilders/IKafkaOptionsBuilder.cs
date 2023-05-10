@@ -8,6 +8,9 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             string groupId,
             Func<IConsumerGroupOptionsBuilder, IConsumerGroupOptions> options);
 
+        IKafkaOptionsBuilder HasCustomKafkaGlobalObserver<TObserver>()
+            where TObserver : KafkaGlobalObserver;
+
         IKafkaOptions Build();
     }
 }

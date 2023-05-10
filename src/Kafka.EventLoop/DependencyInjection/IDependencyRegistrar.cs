@@ -5,6 +5,7 @@ namespace Kafka.EventLoop.DependencyInjection
 {
     internal interface IDependencyRegistrar
     {
+        void AddCustomGlobalObserver<TObserver>() where TObserver : KafkaGlobalObserver;
         void AddJsonMessageDeserializer<TMessage>(string groupId);
         void AddCustomMessageDeserializer<TDeserializer, TMessage>(string groupId)
             where TDeserializer : class, IDeserializer<TMessage?>;

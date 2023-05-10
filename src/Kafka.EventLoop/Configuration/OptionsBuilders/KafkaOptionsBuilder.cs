@@ -10,6 +10,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly KafkaConfig _kafkaConfig;
         private readonly Dictionary<string, IConsumerGroupOptions> _consumerGroups = new();
+        private bool _hasCustomGlobalObserverType;
 
         public KafkaOptionsBuilder(IDependencyRegistrar dependencyRegistrar, KafkaConfig kafkaConfig)
         {
@@ -38,6 +39,18 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             var options = optionsAction(optionsBuilder);
             _consumerGroups.Add(groupId, options);
 
+            return this;
+        }
+
+        public IKafkaOptionsBuilder HasCustomKafkaGlobalObserver<TObserver>()
+            where TObserver : KafkaGlobalObserver
+        {
+            if (_hasCustomGlobalObserverType)
+            {
+                throw new InvalidOptionsException("Custom global observer is already specified");
+            }
+            _dependencyRegistrar.AddCustomGlobalObserver<TObserver>();
+            _hasCustomGlobalObserverType = true;
             return this;
         }
 

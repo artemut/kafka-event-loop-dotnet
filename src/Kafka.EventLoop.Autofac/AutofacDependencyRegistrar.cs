@@ -25,6 +25,14 @@ namespace Kafka.EventLoop.Autofac
             _builder = builder;
         }
 
+        public void AddCustomGlobalObserver<TObserver>() where TObserver : KafkaGlobalObserver
+        {
+            _builder
+                .RegisterType<TObserver>()
+                .As<KafkaGlobalObserver>()
+                .SingleInstance();
+        }
+
         public void AddJsonMessageDeserializer<TMessage>(string groupId)
         {
             _builder
@@ -273,6 +281,7 @@ namespace Kafka.EventLoop.Autofac
                         ctx.ResolveNamed<ConsumerGroupConfig>(groupId).ErrorHandling,
                         () => newCtx.ResolveNamed<Func<ConsumerId, IKafkaConsumer<TMessage>>>(groupId)(consumerId),
                         consumer => newCtx.ResolveNamed<Func<IKafkaConsumer<TMessage>, IKafkaIntake>>(groupId)(consumer),
+                        ctx.ResolveOptional<KafkaGlobalObserver>(),
                         ctx.Resolve<ILogger<KafkaWorker<TMessage>>>());
                 })
                 .Named<IKafkaWorker>(groupId);

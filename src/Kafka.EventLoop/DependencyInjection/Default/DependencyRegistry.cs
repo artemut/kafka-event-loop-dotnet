@@ -6,6 +6,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
 {
     internal class DependencyRegistry
     {
+        public Func<IServiceProvider, KafkaGlobalObserver>? KafkaGlobalObserver { get; set; }
         public Dictionary<string, Func<IServiceProvider, object>> MessageDeserializerProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object, object>> KafkaIntakeFactories { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> KafkaIntakeObserverFactories { get; } = new();

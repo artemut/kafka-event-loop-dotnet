@@ -12,6 +12,7 @@ namespace Kafka.EventLoop.Core
         private readonly ErrorHandlingConfig? _errorHandlingConfig;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
         private readonly Func<IKafkaConsumer<TMessage>, IKafkaIntake> _kafkaIntakeFactory;
+        private readonly KafkaGlobalObserver? _kafkaGlobalObserver;
         private readonly ILogger<KafkaWorker<TMessage>> _logger;
         private int _isRunning;
 
@@ -20,12 +21,14 @@ namespace Kafka.EventLoop.Core
             ErrorHandlingConfig? errorHandlingConfig,
             Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
             Func<IKafkaConsumer<TMessage>, IKafkaIntake> kafkaIntakeFactory,
+            KafkaGlobalObserver? kafkaGlobalObserver,
             ILogger<KafkaWorker<TMessage>> logger)
         {
             _consumerId = consumerId;
             _errorHandlingConfig = errorHandlingConfig;
             _kafkaConsumerFactory = kafkaConsumerFactory;
             _kafkaIntakeFactory = kafkaIntakeFactory;
+            _kafkaGlobalObserver = kafkaGlobalObserver;
             _logger = logger;
         }
 
@@ -116,6 +119,7 @@ namespace Kafka.EventLoop.Core
             try
             {
                 await consumer.SubscribeAsync(cancellationToken);
+                _kafkaGlobalObserver?.OnConsumerSubscribed(_consumerId);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {

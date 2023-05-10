@@ -31,6 +31,15 @@ namespace Kafka.EventLoop.DependencyInjection.Default
             _internalRegistry = internalRegistry;
         }
 
+        public void AddCustomGlobalObserver<TObserver>() where TObserver : KafkaGlobalObserver
+        {
+            if (!_externalRegistry.IsRegistered<TObserver>())
+            {
+                _externalRegistry.AddSingleton<TObserver>();
+            }
+            _internalRegistry.KafkaGlobalObserver = sp => sp.GetOrThrow<TObserver>("Error in custom global observer");
+        }
+
         public void AddJsonMessageDeserializer<TMessage>(string groupId)
         {
             _internalRegistry
@@ -40,7 +49,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomMessageDeserializer<TDeserializer, TMessage>(string groupId)
             where TDeserializer : class, IDeserializer<TMessage?>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TDeserializer)))
+            if (!_externalRegistry.IsRegistered<TDeserializer>())
             {
                 _externalRegistry.AddTransient<TDeserializer>();
             }
@@ -52,7 +61,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomIntakeObserver<TObserver, TMessage>(string groupId)
             where TObserver : KafkaIntakeObserver<TMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TObserver)))
+            if (!_externalRegistry.IsRegistered<TObserver>())
             {
                 _externalRegistry.AddScoped<TObserver>();
             }
@@ -82,7 +91,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomIntakeStrategy<TStrategy, TMessage>(string groupId)
             where TStrategy : class, IKafkaIntakeStrategy<TMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TStrategy)))
+            if (!_externalRegistry.IsRegistered<TStrategy>())
             {
                 _externalRegistry.AddScoped<TStrategy>();
             }
@@ -94,7 +103,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomPartitionMessagesFilter<TFilter, TMessage>(string groupId)
             where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TFilter)))
+            if (!_externalRegistry.IsRegistered<TFilter>())
             {
                 _externalRegistry.AddScoped<TFilter>();
             }
@@ -115,7 +124,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomIntakeThrottle<TThrottle>(string groupId)
             where TThrottle : class, IKafkaIntakeThrottle
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TThrottle)))
+            if (!_externalRegistry.IsRegistered<TThrottle>())
             {
                 _externalRegistry.AddScoped<TThrottle>();
             }
@@ -127,7 +136,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddKafkaController<TController, TMessage>(string groupId)
             where TController : class, IKafkaController<TMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TController)))
+            if (!_externalRegistry.IsRegistered<TController>())
             {
                 _externalRegistry.AddScoped<TController>();
             }
@@ -165,7 +174,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomDeadLetterMessageSerializer<TSerializer, TMessage>(string groupId)
             where TSerializer : class, ISerializer<TMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
+            if (!_externalRegistry.IsRegistered<TSerializer>())
             {
                 _externalRegistry.AddTransient<TSerializer>();
             }
@@ -195,7 +204,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public void AddCustomStreamingMessageSerializer<TSerializer, TOutMessage>(string groupId)
             where TSerializer : class, ISerializer<TOutMessage>
         {
-            if (_externalRegistry.All(s => s.ImplementationType != typeof(TSerializer)))
+            if (!_externalRegistry.IsRegistered<TSerializer>())
             {
                 _externalRegistry.AddTransient<TSerializer>();
             }
@@ -270,6 +279,7 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                     _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerId),
                     consumer => (IKafkaIntake)_internalRegistry.KafkaIntakeFactories[groupId](sp, consumer),
+                    _internalRegistry.KafkaGlobalObserver?.Invoke(sp),
                     sp.GetRequiredService<ILogger<KafkaWorker<TMessage>>>());
         }
 
