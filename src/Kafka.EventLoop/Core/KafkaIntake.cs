@@ -51,7 +51,6 @@ namespace Kafka.EventLoop.Core
 
         public void Dispose()
         {
-            _intakeStrategy.Dispose();
             _intakeObserver?.Dispose();
         }
 

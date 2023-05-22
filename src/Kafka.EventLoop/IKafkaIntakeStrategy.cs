@@ -1,9 +1,8 @@
 ﻿namespace Kafka.EventLoop
 {
-    public interface IKafkaIntakeStrategy<TMessage> : IDisposable
+    public interface IKafkaIntakeStrategy<TMessage>
     {
-        CancellationToken Token { get; }
-        void OnConsumeStarting();
+        void OnConsumeStarting(IKafkaIntakeCancellation cancellation);
         void OnNewMessageConsumed(MessageInfo<TMessage> messageInfo);
     }
 }

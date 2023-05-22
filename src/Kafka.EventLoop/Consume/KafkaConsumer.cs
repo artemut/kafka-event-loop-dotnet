@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration;
 using Kafka.EventLoop.Configuration.ConfigTypes;
+using Kafka.EventLoop.Core;
 using Kafka.EventLoop.Exceptions;
 using Kafka.EventLoop.Utils;
 
@@ -49,14 +50,14 @@ namespace Kafka.EventLoop.Consume
             CancellationToken cancellationToken)
         {
             var messages = new List<MessageInfo<TMessage>>();
-            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(intakeStrategy.Token, cancellationToken))
+            using (var cancellation = new KafkaIntakeCancellation(cancellationToken))
             {
                 try
                 {
-                    intakeStrategy.OnConsumeStarting();
+                    intakeStrategy.OnConsumeStarting(cancellation);
                     while (true)
                     {
-                        var result = _consumer.Consume(linkedCts.Token);
+                        var result = _consumer.Consume(cancellation.Token);
                         var messageInfo = new MessageInfo<TMessage>(
                             result.Message.Value,
                             result.Message.Timestamp.UtcDateTime,
@@ -66,7 +67,7 @@ namespace Kafka.EventLoop.Consume
                         messages.Add(messageInfo);
 
                         intakeStrategy.OnNewMessageConsumed(messageInfo);
-                        if (intakeStrategy.Token.IsCancellationRequested)
+                        if (cancellation.IsIntakeCancelled)
                             break;
                     }
                 }
@@ -75,7 +76,7 @@ namespace Kafka.EventLoop.Consume
                     throw new ConnectivityException(
                         $"Error while consuming messages from kafka: {ex.Error.Code}", ex);
                 }
-                catch (OperationCanceledException) when (intakeStrategy.Token.IsCancellationRequested)
+                catch (OperationCanceledException) when (cancellation.IsIntakeCancelled)
                 {
                 }
             }

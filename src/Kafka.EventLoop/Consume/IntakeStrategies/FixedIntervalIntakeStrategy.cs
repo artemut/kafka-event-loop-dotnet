@@ -3,28 +3,21 @@
     internal class FixedIntervalIntakeStrategy<TMessage> : IKafkaIntakeStrategy<TMessage>
     {
         private readonly int _intervalInMs;
-        private readonly CancellationTokenSource _cts;
+        private IKafkaIntakeCancellation? _cancellation;
 
         public FixedIntervalIntakeStrategy(int intervalInMs)
         {
             _intervalInMs = intervalInMs;
-            _cts = new CancellationTokenSource();
         }
 
-        public CancellationToken Token => _cts.Token;
-
-        public void OnConsumeStarting()
+        public void OnConsumeStarting(IKafkaIntakeCancellation cancellation)
         {
-            _cts.CancelAfter(_intervalInMs);
+            _cancellation = cancellation;
+            _cancellation.CancelAfter(_intervalInMs);
         }
 
         public void OnNewMessageConsumed(MessageInfo<TMessage> messageInfo)
         {
-        }
-
-        public void Dispose()
-        {
-            _cts.Dispose();
         }
     }
 }

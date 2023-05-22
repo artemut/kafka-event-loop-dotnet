@@ -4,34 +4,27 @@
     {
         private readonly int _maxSize;
         private readonly int _timeoutInMs;
-        private readonly CancellationTokenSource _cts;
+        private IKafkaIntakeCancellation? _cancellation;
         private int _currentSize;
 
         public MaxSizeWithTimeoutIntakeStrategy(int maxSize, int timeoutInMs)
         {
             _maxSize = maxSize;
             _timeoutInMs = timeoutInMs;
-            _cts = new CancellationTokenSource();
         }
 
-        public CancellationToken Token => _cts.Token;
-
-        public void OnConsumeStarting()
+        public void OnConsumeStarting(IKafkaIntakeCancellation cancellation)
         {
-            _cts.CancelAfter(_timeoutInMs);
+            _cancellation = cancellation;
+            _cancellation.CancelAfter(_timeoutInMs);
         }
 
         public void OnNewMessageConsumed(MessageInfo<TMessage> messageInfo)
         {
             if (++_currentSize >= _maxSize)
             {
-                _cts.Cancel();
+                _cancellation!.Cancel();
             }
-        }
-
-        public void Dispose()
-        {
-            _cts.Dispose();
         }
     }
 }
