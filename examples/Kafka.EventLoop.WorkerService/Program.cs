@@ -20,7 +20,6 @@ IKafkaOptions BuildKafkaOptions(IKafkaOptionsBuilder kafkaOptionsBuilder)
             .HasCustomMessageDeserializer<FooMessageDeserializer>()
             .HasController<FooController>()
             .HasCustomIntakeStrategy<FooIntakeStrategy>()
-            .HasCustomPartitionMessagesFilter<FooPartitionMessagesFilter>()
             .HasCustomThrottle<FooIntakeThrottle>()
             .HasStreaming<FooEnrichedMessage>(sOptions => sOptions
                 .HasJsonOutMessageSerializer()

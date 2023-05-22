@@ -1,7 +1,6 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
-using Kafka.EventLoop.Consume.Filtration;
 using Kafka.EventLoop.Exceptions;
 using Kafka.EventLoop.Produce;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,6 @@ namespace Kafka.EventLoop.Core
         private readonly KafkaIntakeObserver<TMessage>? _intakeObserver;
         private readonly IKafkaIntakeStrategy<TMessage> _intakeStrategy;
         private readonly IKafkaIntakeThrottle _intakeThrottle;
-        private readonly Func<IKafkaIntakeFilter<TMessage>> _intakeFilterProvider;
         private readonly Func<IKafkaController<TMessage>> _controllerProvider;
         private readonly Func<IKafkaProducer<TMessage>> _kafkaDeadLetterProducerProvider;
         private readonly ErrorHandlingConfig? _errorHandlingConfig;
@@ -25,7 +23,6 @@ namespace Kafka.EventLoop.Core
             Func<KafkaIntakeObserver<TMessage>?> intakeObserverFactory,
             Func<IKafkaIntakeStrategy<TMessage>> intakeStrategyFactory,
             Func<IKafkaIntakeThrottle> intakeThrottleProvider,
-            Func<IKafkaIntakeFilter<TMessage>> intakeFilterProvider,
             Func<IKafkaController<TMessage>> controllerProvider,
             Func<IKafkaProducer<TMessage>> kafkaDeadLetterProducerProvider,
             ErrorHandlingConfig? errorHandlingConfig,
@@ -35,7 +32,6 @@ namespace Kafka.EventLoop.Core
             _intakeObserver = intakeObserverFactory();
             _intakeStrategy = intakeStrategyFactory();
             _intakeThrottle = intakeThrottleProvider();
-            _intakeFilterProvider = intakeFilterProvider;
             _controllerProvider = controllerProvider;
             _kafkaDeadLetterProducerProvider = kafkaDeadLetterProducerProvider;
             _errorHandlingConfig = errorHandlingConfig;
@@ -56,10 +52,14 @@ namespace Kafka.EventLoop.Core
 
         private async Task<ThrottleOptions> ExecuteInternalAsync(CancellationToken cancellationToken)
         {
+            bool containsPartialResults;
             MessageInfo<TMessage>[] messages;
             try
             {
-                messages = _consumer.CollectMessages(_intakeStrategy, cancellationToken);
+                messages = _consumer.CollectMessages(
+                    _intakeStrategy,
+                    out containsPartialResults,
+                    cancellationToken);
             }
             catch (ConnectivityException ex)
             {
@@ -84,16 +84,12 @@ namespace Kafka.EventLoop.Core
                 _intakeObserver?.OnConsumeError(ex.Error);
                 throw;
             }
-
-            var intakeFilter = _intakeFilterProvider();
-            var result = intakeFilter.FilterMessages(messages);
-            _intakeObserver?.OnMessagesFiltered(result.Messages);
-
-            await ProcessMessagesAsync(result.Messages, cancellationToken);
+            
+            await ProcessMessagesAsync(messages, cancellationToken);
 
             try
             {
-                await _consumer.CommitAsync(result.Messages, cancellationToken);
+                await _consumer.CommitAsync(messages, cancellationToken);
             }
             catch (ConnectivityException ex)
             {
@@ -101,14 +97,14 @@ namespace Kafka.EventLoop.Core
                 throw;
             }
 
-            if (result.PartitionToLastAllowedOffset != null)
+            if (containsPartialResults)
             {
-                // if some offsets weren't committed
+                // some messages were consumed from kafka but not processed
                 // we need to seek consumer back
-                // so that filtered out messages are consumed again the next iteration
+                // so that those messages are consumed again in the next iteration
                 try
                 {
-                    await _consumer.SeekAsync(result.PartitionToLastAllowedOffset, cancellationToken);
+                    await _consumer.SeekAsync(messages, cancellationToken);
                 }
                 catch (ConnectivityException ex)
                 {
@@ -119,7 +115,7 @@ namespace Kafka.EventLoop.Core
 
             _intakeObserver?.OnCommitted();
 
-            return new ThrottleOptions(assignment.Count, result.Messages.Length);
+            return new ThrottleOptions(assignment.Count, messages.Length);
         }
 
         private async Task ProcessMessagesAsync(

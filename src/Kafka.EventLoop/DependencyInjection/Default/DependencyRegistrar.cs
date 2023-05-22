@@ -1,7 +1,6 @@
 ﻿using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
-using Kafka.EventLoop.Consume.Filtration;
 using Kafka.EventLoop.Consume.IntakeStrategies;
 using Kafka.EventLoop.Consume.Throttling;
 using Kafka.EventLoop.Conversion;
@@ -98,18 +97,6 @@ namespace Kafka.EventLoop.DependencyInjection.Default
             _internalRegistry.KafkaIntakeStrategyFactories[groupId] =
                 sp => sp.GetOrThrow<TStrategy>(
                     $"Error in custom intake strategy for consumer group {groupId}");
-        }
-
-        public void AddCustomPartitionMessagesFilter<TFilter, TMessage>(string groupId)
-            where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>
-        {
-            if (!_externalRegistry.IsRegistered<TFilter>())
-            {
-                _externalRegistry.AddScoped<TFilter>();
-            }
-            _internalRegistry.KafkaPartitionMessagesFilterProviders[groupId] =
-                sp => sp.GetOrThrow<TFilter>(
-                    $"Error in custom partition messages filter for consumer group {groupId}");
         }
 
         public void AddDefaultIntakeThrottle(string groupId, IntakeConfig? intakeConfig)
@@ -257,15 +244,6 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                     },
                     () => (IKafkaIntakeStrategy<TMessage>)_internalRegistry.KafkaIntakeStrategyFactories[groupId](scopedSp),
                     () => (IKafkaIntakeThrottle)_internalRegistry.KafkaIntakeThrottleProviders[groupId](scopedSp),
-                    () =>
-                    {
-                        var filterProviders = _internalRegistry.KafkaPartitionMessagesFilterProviders;
-                        return new KafkaIntakeFilter<TMessage>(
-                            filterProviders.ContainsKey(groupId)
-                                ? (IKafkaPartitionMessagesFilter<TMessage>)filterProviders[groupId](scopedSp)
-                                : null,
-                            scopedSp.GetRequiredService<ILogger<KafkaIntakeFilter<TMessage>>>());
-                    },
                     () => (IKafkaController<TMessage>)_internalRegistry.KafkaControllerProviders[groupId](scopedSp),
                     () => (IKafkaProducer<TMessage>)_internalRegistry.DeadLetterProducerProviders[groupId].Invoke(sp),
                     _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,

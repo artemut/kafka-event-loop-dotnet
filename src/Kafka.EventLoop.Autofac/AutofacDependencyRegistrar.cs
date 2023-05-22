@@ -2,7 +2,6 @@
 using Confluent.Kafka;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
-using Kafka.EventLoop.Consume.Filtration;
 using Kafka.EventLoop.Consume.IntakeStrategies;
 using Kafka.EventLoop.Consume.Throttling;
 using Kafka.EventLoop.Conversion;
@@ -89,15 +88,6 @@ namespace Kafka.EventLoop.Autofac
             _builder
                 .RegisterType<TStrategy>()
                 .Named<IKafkaIntakeStrategy<TMessage>>(groupId)
-                .InstancePerLifetimeScope();
-        }
-
-        public void AddCustomPartitionMessagesFilter<TFilter, TMessage>(string groupId) 
-            where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>
-        {
-            _builder
-                .RegisterType<TFilter>()
-                .Named<IKafkaPartitionMessagesFilter<TMessage>>(groupId)
                 .InstancePerLifetimeScope();
         }
 
@@ -248,13 +238,6 @@ namespace Kafka.EventLoop.Autofac
         public void AddKafkaWorker<TMessage>(string groupId)
         {
             _builder
-                .RegisterType<KafkaIntakeFilter<TMessage>>()
-                .WithParameter(
-                    (p, _) => p.ParameterType == typeof(IKafkaPartitionMessagesFilter<TMessage>),
-                    (_, ctx) => ctx.ResolveOptionalNamed<IKafkaPartitionMessagesFilter<TMessage>>(groupId))
-                .Named<IKafkaIntakeFilter<TMessage>>(groupId);
-
-            _builder
                 .Register<IKafkaConsumer<TMessage>, IKafkaIntake>((ctx, consumer) =>
                 {
                     var lifetimeScope = ctx.Resolve<ILifetimeScope>().BeginLifetimeScope();
@@ -263,7 +246,6 @@ namespace Kafka.EventLoop.Autofac
                         () => lifetimeScope.ResolveOptionalNamed<KafkaIntakeObserver<TMessage>>(groupId),
                         () => lifetimeScope.ResolveNamed<IKafkaIntakeStrategy<TMessage>>(groupId),
                         () => lifetimeScope.ResolveNamed<IKafkaIntakeThrottle>(groupId),
-                        () => lifetimeScope.ResolveNamed<IKafkaIntakeFilter<TMessage>>(groupId),
                         () => lifetimeScope.ResolveNamed<IKafkaController<TMessage>>(groupId),
                         () => lifetimeScope.ResolveNamed<IKafkaProducer<TMessage>>(DeadLetteringName(groupId)),
                         lifetimeScope.ResolveNamed<ConsumerGroupConfig>(groupId).ErrorHandling,

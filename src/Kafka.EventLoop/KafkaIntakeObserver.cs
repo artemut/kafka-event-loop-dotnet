@@ -13,9 +13,6 @@ namespace Kafka.EventLoop
         public virtual void OnMessagesCollected(MessageInfo<TMessage>[] messages)
         {
         }
-        public virtual void OnMessagesFiltered(MessageInfo<TMessage>[] messages)
-        {
-        }
         public virtual void OnProcessingFinished()
         {
         }

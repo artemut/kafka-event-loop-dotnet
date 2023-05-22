@@ -16,8 +16,6 @@ namespace Kafka.EventLoop.DependencyInjection
         void AddMaxSizeWithTimeoutIntakeStrategy<TMessage>(string groupId, MaxSizeWithTimeoutIntakeStrategyConfig config);
         void AddCustomIntakeStrategy<TStrategy, TMessage>(string groupId)
             where TStrategy : class, IKafkaIntakeStrategy<TMessage>;
-        void AddCustomPartitionMessagesFilter<TFilter, TMessage>(string groupId)
-            where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>;
         void AddDefaultIntakeThrottle(string groupId, IntakeConfig? intakeConfig);
         void AddCustomIntakeThrottle<TThrottle>(string groupId)
             where TThrottle : class, IKafkaIntakeThrottle;

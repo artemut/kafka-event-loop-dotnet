@@ -16,7 +16,6 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         private bool _hasDeserializerType;
         private bool _hasCustomIntakeThrottleType;
         private bool _hasCustomIntakeStrategyType;
-        private bool _hasCustomPartitionMessagesFilterType;
         private bool _hasControllerType;
         private bool _hasCustomIntakeObserverType;
         private Type? _controllerType;
@@ -76,19 +75,6 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             }
             _dependencyRegistrar.AddCustomIntakeStrategy<TStrategy, TMessage>(_groupId);
             _hasCustomIntakeStrategyType = true;
-            return this;
-        }
-
-        public IConsumerGroupOptionsBuilder<TMessage> HasCustomPartitionMessagesFilter<TFilter>()
-            where TFilter : class, IKafkaPartitionMessagesFilter<TMessage>
-        {
-            if (_hasCustomPartitionMessagesFilterType)
-            {
-                throw new InvalidOptionsException(
-                    $"Custom partition messages filter is already specified for consumer group {_groupId}");
-            }
-            _dependencyRegistrar.AddCustomPartitionMessagesFilter<TFilter, TMessage>(_groupId);
-            _hasCustomPartitionMessagesFilterType = true;
             return this;
         }
 

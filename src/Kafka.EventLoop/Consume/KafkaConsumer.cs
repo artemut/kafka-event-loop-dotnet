@@ -47,8 +47,10 @@ namespace Kafka.EventLoop.Consume
 
         public MessageInfo<TMessage>[] CollectMessages(
             IKafkaIntakeStrategy<TMessage> intakeStrategy,
+            out bool containsPartialResults,
             CancellationToken cancellationToken)
         {
+            containsPartialResults = false;
             var messages = new List<MessageInfo<TMessage>>();
             using (var cancellation = new KafkaIntakeCancellation(cancellationToken))
             {
@@ -58,6 +60,13 @@ namespace Kafka.EventLoop.Consume
                     while (true)
                     {
                         var result = _consumer.Consume(cancellation.Token);
+
+                        if (cancellation.StoppedPartitions.Contains(result.Partition))
+                        {
+                            containsPartialResults = true;
+                            continue;
+                        }
+
                         var messageInfo = new MessageInfo<TMessage>(
                             result.Message.Value,
                             result.Message.Timestamp.UtcDateTime,
@@ -130,22 +139,22 @@ namespace Kafka.EventLoop.Consume
             }
         }
 
-        public async Task SeekAsync(
-            IDictionary<int, long> partitionToLastAllowedOffset,
-            CancellationToken cancellationToken)
+        public async Task SeekAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
         {
+            var offsets = messages
+                .GroupBy(x => new TopicPartition(x.Topic, x.Partition))
+                .Select(tpGroup => new TopicPartitionOffset(
+                    tpGroup.Key,
+                    new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
+                .ToList();
+
             var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.SeekTimeoutMs ?? Defaults.SeekTimeoutMs);
             try
             {
-                foreach (var (partition, lastAllowedOffset) in partitionToLastAllowedOffset)
+                foreach (var offset in offsets)
                 {
-                    var seekTo = new TopicPartitionOffset(
-                        _consumerGroupConfig.TopicName,
-                        partition,
-                        lastAllowedOffset + 1);
-
                     await _timeoutRunner.RunAsync(
-                        () => _consumer.Seek(seekTo),
+                        () => _consumer.Seek(offset),
                         timeout,
                         $"Wasn't able to seek to offset within configured timeout {timeout}",
                         cancellationToken);
