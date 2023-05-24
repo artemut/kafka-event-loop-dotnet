@@ -1,0 +1,237 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "TestSetup": {
+    "ConnectionString": "",
+    "Topics": [
+      { "Name": "event-loop--basic-topic--1-partition", "NumberOfPartitions": 1 },
+      { "Name": "event-loop--parallelism-topic--2-partitions", "NumberOfPartitions": 2 },
+      { "Name": "event-loop--parallelism-topic--3-partitions", "NumberOfPartitions": 3 },
+      { "Name": "event-loop--parallelism-topic--4-partitions", "NumberOfPartitions": 4 },
+      { "Name": "event-loop--fixed-size-topic--2-partitions", "NumberOfPartitions": 2 },
+      { "Name": "event-loop--fixed-interval-topic--2-partitions", "NumberOfPartitions": 2 },
+      { "Name": "event-loop--max-size-timeout-topic--3-partitions", "NumberOfPartitions": 3 },
+      { "Name": "event-loop--custom-strategy-topic--2-partitions", "NumberOfPartitions": 2 },
+      { "Name": "event-loop--partial-intake-strategy-topic--3-partitions", "NumberOfPartitions": 3 },
+      { "Name": "event-loop--transient-error-topic--1-partition", "NumberOfPartitions": 1 },
+      { "Name": "event-loop--critical-error-stop-topic--1-partition", "NumberOfPartitions": 1 },
+      { "Name": "event-loop--critical-error-dead-lettering-topic--1-partition", "NumberOfPartitions": 1 },
+      { "Name": "event-loop--dead-letters-topic--1-partition", "NumberOfPartitions": 1 },
+      { "Name": "event-loop--throttling-topic--4-partitions", "NumberOfPartitions": 4 },
+      { "Name": "event-loop--streamer-topic--2-partitions", "NumberOfPartitions": 2 },
+      { "Name": "event-loop--stream-consumer-topic--2-partitions", "NumberOfPartitions": 2 }
+    ]
+  },
+  "Kafka": {
+    "ConsumerGroups": [
+      {
+        "GroupId": "event-loop--basic-group",
+        "ConnectionString": "",
+        "TopicName": "event-loop--basic-topic--1-partition",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedInterval",
+            "IntervalInMs": 500
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--parallelism-group--1-consumer--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--parallelism-topic--2-partitions",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--parallelism-group--2-consumers--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--parallelism-topic--3-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--parallelism-group--4-consumers--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--parallelism-topic--4-partitions",
+        "ParallelConsumers": 4,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--fixed-size-group--2-consumers--fixed-size-6",
+        "ConnectionString": "",
+        "TopicName": "event-loop--fixed-size-topic--2-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 6
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--fixed-interval-group--2-consumers--fixed-interval-5s",
+        "ConnectionString": "",
+        "TopicName": "event-loop--fixed-interval-topic--2-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedInterval",
+            "IntervalInMs": 5000
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--max-size-timeout-group--3-consumers--size-10-5s",
+        "ConnectionString": "",
+        "TopicName": "event-loop--max-size-timeout-topic--3-partitions",
+        "ParallelConsumers": 3,
+        "Intake": {
+          "Strategy": {
+            "Name": "MaxSizeWithTimeout",
+            "MaxSize": 10,
+            "TimeoutInMs": 5000
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--custom-strategy-group--2-consumers",
+        "ConnectionString": "",
+        "TopicName": "event-loop--custom-strategy-topic--2-partitions",
+        "ParallelConsumers": 2
+      },
+      {
+        "GroupId": "event-loop--partial-intake-strategy-group--1-consumer",
+        "ConnectionString": "",
+        "TopicName": "event-loop--partial-intake-strategy-topic--3-partitions",
+        "ParallelConsumers": 1
+      },
+      {
+        "GroupId": "event-loop--transient-error-group--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--transient-error-topic--1-partition",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        },
+        "ErrorHandling": {
+          "Transient": {
+            "RestartConsumerAfterMs": 1000
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--critical-error-stop-group--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--critical-error-stop-topic--1-partition",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        },
+        "ErrorHandling": {
+          "Critical": {
+            "StopConsumer": true
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--critical-error-dead-lettering-group--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--critical-error-dead-lettering-topic--1-partition",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        },
+        "ErrorHandling": {
+          "Critical": {
+            "DeadLettering": {
+              "ConnectionString": "",
+              "TopicName": "event-loop--dead-letters-topic--1-partition"
+            }
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--dead-letters-group--fixed-size-2",
+        "ConnectionString": "",
+        "TopicName": "event-loop--dead-letters-topic--1-partition",
+        "ParallelConsumers": 1,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 2
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--throttling-group--2-consumers--fixed-size-50--speed-50",
+        "ConnectionString": "",
+        "TopicName": "event-loop--throttling-topic--4-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "MaxSpeed": 50,
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 50
+          }
+        }
+      },
+      {
+        "GroupId": "event-loop--streamer-group--2-consumers--fixed-size-10",
+        "ConnectionString": "",
+        "TopicName": "event-loop--streamer-topic--2-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 10
+          }
+        },
+        "Streaming": {
+          "ConnectionString": "",
+          "TopicName": "event-loop--stream-consumer-topic--2-partitions"
+        }
+      },
+      {
+        "GroupId": "event-loop--stream-consumer-group--2-consumers--fixed-size-5",
+        "ConnectionString": "",
+        "TopicName": "event-loop--stream-consumer-topic--2-partitions",
+        "ParallelConsumers": 2,
+        "Intake": {
+          "Strategy": {
+            "Name": "FixedSize",
+            "Size": 5
+          }
+        }
+      }
+    ]
+  }
+}
