@@ -14,6 +14,12 @@ namespace Kafka.EventLoop.Configuration.Helpers
             {
                 throw new ConfigValidationException(KafkaSectionName, "Cannot find config section in the settings");
             }
+            if (string.IsNullOrWhiteSpace(config.ConnectionString))
+            {
+                throw new ConfigValidationException(
+                    $"{KafkaSectionName}:{nameof(config.ConnectionString)}",
+                    "Value must be provided");
+            }
             try
             {
                 ValidateConsumerGroups(config.ConsumerGroups);
@@ -56,11 +62,6 @@ namespace Kafka.EventLoop.Configuration.Helpers
             {
                 throw new ConfigValidationException(
                     $"{index}:{nameof(config.GroupId)}", "Value must be provided");
-            }
-            if (string.IsNullOrWhiteSpace(config.ConnectionString))
-            {
-                throw new ConfigValidationException(
-                    $"{config.GroupId}:{nameof(config.ConnectionString)}", "Value must be provided");
             }
             if (string.IsNullOrWhiteSpace(config.TopicName))
             {
@@ -257,11 +258,6 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
                 return;
-            if (string.IsNullOrWhiteSpace(config.ConnectionString))
-            {
-                throw new ConfigValidationException(
-                    nameof(config.ConnectionString), "Value must be provided");
-            }
             if (string.IsNullOrWhiteSpace(config.TopicName))
             {
                 throw new ConfigValidationException(

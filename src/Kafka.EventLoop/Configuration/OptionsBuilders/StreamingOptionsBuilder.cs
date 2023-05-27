@@ -10,6 +10,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         : IStreamingOptionsBuilder<TInMessage, TOutMessage>
     {
         private readonly string _groupId;
+        private readonly string _connectionString;
         private readonly StreamingConfig _config;
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly ProducerConfig _confluentConfig;
@@ -17,10 +18,12 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
         public StreamingOptionsBuilder(
             string groupId,
+            string connectionString,
             StreamingConfig config,
             IDependencyRegistrar dependencyRegistrar)
         {
             _groupId = groupId;
+            _connectionString = connectionString;
             _config = config;
             _dependencyRegistrar = dependencyRegistrar;
             _confluentConfig = new ProducerConfig();
@@ -73,7 +76,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Outgoing stream message serializer is not specified for consumer group {_groupId}");
             }
             
-            _confluentConfig.BootstrapServers = _config.ConnectionString;
+            _confluentConfig.BootstrapServers = _config.ConnectionString ?? _connectionString;
             _confluentConfig.EnableDeliveryReports ??= true;
             _confluentConfig.Acks ??= Acks.Leader;
             _dependencyRegistrar.AddStreamingProducer<TOutMessage>(

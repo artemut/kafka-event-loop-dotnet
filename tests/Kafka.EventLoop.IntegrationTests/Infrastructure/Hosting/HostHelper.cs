@@ -21,6 +21,7 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Hosting
                 .ConfigureAppConfiguration(ctx =>
                 {
                     ctx.AddJsonFile("settings.json");
+                    ctx.AddEnvironmentVariables("KafkaEventLoopTests__");
                 })
                 .ConfigureServices((ctx, services) =>
                 {

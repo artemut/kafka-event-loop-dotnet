@@ -35,7 +35,11 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"No settings found for consumer group {groupId}");
             }
 
-            var optionsBuilder = new ConsumerGroupOptionsBuilder(groupId, _dependencyRegistrar, consumerGroupConfig);
+            var optionsBuilder = new ConsumerGroupOptionsBuilder(
+                groupId,
+                _dependencyRegistrar,
+                _kafkaConfig.ConnectionString,
+                consumerGroupConfig);
             var options = optionsAction(optionsBuilder);
             _consumerGroups.Add(groupId, options);
 

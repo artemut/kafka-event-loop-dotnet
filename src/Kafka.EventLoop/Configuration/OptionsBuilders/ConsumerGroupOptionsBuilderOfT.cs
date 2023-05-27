@@ -11,6 +11,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
     {
         private readonly string _groupId;
         private readonly IDependencyRegistrar _dependencyRegistrar;
+        private readonly string _connectionString;
         private readonly ConsumerGroupConfig _consumerGroupConfig;
         private readonly ConsumerConfig _confluentConfig;
         private bool _hasDeserializerType;
@@ -25,10 +26,12 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         public ConsumerGroupOptionsBuilder(
             string groupId,
             IDependencyRegistrar dependencyRegistrar,
+            string connectionString,
             ConsumerGroupConfig consumerGroupConfig)
         {
             _groupId = groupId;
             _dependencyRegistrar = dependencyRegistrar;
+            _connectionString = connectionString;
             _consumerGroupConfig = consumerGroupConfig;
             _confluentConfig = new ConsumerConfig();
         }
@@ -124,6 +127,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
             var builder = new DeadLetteringOptionsBuilder<TMessageKey, TMessage>(
                 _groupId,
+                _connectionString,
                 deadLetteringConfig,
                 _dependencyRegistrar);
             _deadLetteringOptions = optionsAction(builder);
@@ -150,6 +154,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
             var builder = new StreamingOptionsBuilder<TMessage, TOutMessage>(
                 _groupId,
+                _connectionString,
                 streamingConfig,
                 _dependencyRegistrar);
             _streamingOptions = optionsAction(builder);
@@ -261,7 +266,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _dependencyRegistrar.AddConsumerGroupConfig(_groupId, _consumerGroupConfig);
 
             _confluentConfig.GroupId = _groupId;
-            _confluentConfig.BootstrapServers = _consumerGroupConfig.ConnectionString;
+            _confluentConfig.BootstrapServers = _consumerGroupConfig.ConnectionString ?? _connectionString;
             _confluentConfig.EnableAutoCommit = false;
             _confluentConfig.EnableAutoOffsetStore = false;
             _dependencyRegistrar.AddKafkaConsumer<TMessage>(_groupId, _confluentConfig);

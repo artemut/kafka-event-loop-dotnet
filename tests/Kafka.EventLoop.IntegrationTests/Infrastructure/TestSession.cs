@@ -29,8 +29,9 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure
             Config = new TestSetupConfig();
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("settings.json")
+                .AddEnvironmentVariables("KafkaEventLoopTests__")
                 .Build();
-            configuration.GetSection("TestSetup").Bind(Config);
+            configuration.GetSection("TestSettings").Bind(Config);
 
             KafkaHelper = new KafkaHelper(Config);
             EventsInterceptor = new EventsInterceptor();
