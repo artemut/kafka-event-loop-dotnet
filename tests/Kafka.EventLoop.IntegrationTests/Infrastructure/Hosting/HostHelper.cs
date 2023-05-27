@@ -103,6 +103,14 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Hosting
                     .HasKafkaConfig(c => c.AutoOffsetReset = AutoOffsetReset.Earliest)
                     .HasKafkaConfig(c => c.FetchWaitMaxMs = 100)
                     .Build())
+                .HasConsumerGroup("event-loop--partial-intake-strategy-with-exclude-group--1-consumer", cgOptions => cgOptions
+                    .HasMessageType<ProductOrderModel>()
+                    .HasJsonMessageDeserializer()
+                    .HasController<PartialIntakeStrategyWithExcludeController>()
+                    .HasCustomIntakeStrategy<PartialIntakeStrategyWithExclude>()
+                    .HasKafkaConfig(c => c.AutoOffsetReset = AutoOffsetReset.Earliest)
+                    .HasKafkaConfig(c => c.FetchWaitMaxMs = 100)
+                    .Build())
                 .HasConsumerGroup("event-loop--transient-error-group--fixed-size-2", cgOptions => cgOptions
                     .HasMessageType<ProductOrderModel>()
                     .HasJsonMessageDeserializer()

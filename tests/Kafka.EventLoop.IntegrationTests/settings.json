@@ -17,6 +17,7 @@
       { "Name": "event-loop--max-size-timeout-topic--3-partitions", "NumberOfPartitions": 3 },
       { "Name": "event-loop--custom-strategy-topic--2-partitions", "NumberOfPartitions": 2 },
       { "Name": "event-loop--partial-intake-strategy-topic--3-partitions", "NumberOfPartitions": 3 },
+      { "Name": "event-loop--partial-intake-strategy-with-exclude-topic--3-partitions", "NumberOfPartitions": 3 },
       { "Name": "event-loop--transient-error-topic--1-partition", "NumberOfPartitions": 1 },
       { "Name": "event-loop--critical-error-stop-topic--1-partition", "NumberOfPartitions": 1 },
       { "Name": "event-loop--critical-error-dead-lettering-topic--1-partition", "NumberOfPartitions": 1 },
@@ -115,6 +116,11 @@
       {
         "GroupId": "event-loop--partial-intake-strategy-group--1-consumer",
         "TopicName": "event-loop--partial-intake-strategy-topic--3-partitions",
+        "ParallelConsumers": 1
+      },
+      {
+        "GroupId": "event-loop--partial-intake-strategy-with-exclude-group--1-consumer",
+        "TopicName": "event-loop--partial-intake-strategy-with-exclude-topic--3-partitions",
         "ParallelConsumers": 1
       },
       {

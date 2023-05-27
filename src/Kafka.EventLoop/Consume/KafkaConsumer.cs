@@ -73,9 +73,15 @@ namespace Kafka.EventLoop.Consume
                             result.Topic,
                             result.Partition,
                             result.Offset);
-                        messages.Add(messageInfo);
 
                         intakeStrategy.OnNewMessageConsumed(messageInfo);
+
+                        if (!cancellation.StoppedPartitions.Contains(result.Partition) ||
+                            cancellation.IncludeLastMessage[result.Partition])
+                        {
+                            messages.Add(messageInfo);
+                        }
+
                         if (cancellation.IsIntakeCancelled)
                             break;
                     }
