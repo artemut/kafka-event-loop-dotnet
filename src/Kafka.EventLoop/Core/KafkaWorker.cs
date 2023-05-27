@@ -9,7 +9,6 @@ namespace Kafka.EventLoop.Core
     internal class KafkaWorker<TMessage> : IKafkaWorker
     {
         private readonly ConsumerId _consumerId;
-        private readonly ErrorHandlingConfig? _errorHandlingConfig;
         private readonly Func<IKafkaConsumer<TMessage>> _kafkaConsumerFactory;
         private readonly Func<IKafkaConsumer<TMessage>, IKafkaIntake> _kafkaIntakeFactory;
         private readonly KafkaGlobalObserver? _kafkaGlobalObserver;
@@ -18,14 +17,12 @@ namespace Kafka.EventLoop.Core
 
         public KafkaWorker(
             ConsumerId consumerId,
-            ErrorHandlingConfig? errorHandlingConfig,
             Func<IKafkaConsumer<TMessage>> kafkaConsumerFactory,
             Func<IKafkaConsumer<TMessage>, IKafkaIntake> kafkaIntakeFactory,
             KafkaGlobalObserver? kafkaGlobalObserver,
             ILogger<KafkaWorker<TMessage>> logger)
         {
             _consumerId = consumerId;
-            _errorHandlingConfig = errorHandlingConfig;
             _kafkaConsumerFactory = kafkaConsumerFactory;
             _kafkaIntakeFactory = kafkaIntakeFactory;
             _kafkaGlobalObserver = kafkaGlobalObserver;
@@ -68,11 +65,6 @@ namespace Kafka.EventLoop.Core
                     _logger.LogCritical(ex, "Fatal connectivity error while running consumer {ConsumerId}", _consumerId);
                     isRetryable = false;
                 }
-                catch (TransientException ex)
-                {
-                    _logger.LogError(ex.InnerException, "Transient error while processing messages in consumer {ConsumerId}", _consumerId);
-                    isRetryable = true;
-                }
                 catch (DeadLetteringFailedException ex)
                 {
                     _logger.LogCritical(ex.InnerException, "Dead-lettering failed for consumer {ConsumerId}", _consumerId);
@@ -96,7 +88,7 @@ namespace Kafka.EventLoop.Core
 
                 if (isRetryable)
                 {
-                    var delay = _errorHandlingConfig?.Transient?.RestartConsumerAfterMs ?? Defaults.RestartConsumerAfterMs;
+                    var delay = Defaults.RestartConsumerAfterMs;
                     _logger.LogWarning("Restarting consumer {ConsumerId} in {Delay} ms...", _consumerId, delay);
                     await Task.Delay(delay, cancellationToken);
                     continue;

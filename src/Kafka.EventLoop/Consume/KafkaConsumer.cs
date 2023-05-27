@@ -120,15 +120,8 @@ namespace Kafka.EventLoop.Consume
             }
         }
 
-        public async Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
+        public async Task CommitAsync(TopicPartitionOffset[] offsets, CancellationToken cancellationToken)
         {
-            var offsets = messages
-                .GroupBy(x => new TopicPartition(x.Topic, x.Partition))
-                .Select(tpGroup => new TopicPartitionOffset(
-                    tpGroup.Key,
-                    new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
-                .ToList();
-
             var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.CommitTimeoutMs ?? Defaults.CommitTimeoutMs);
             try
             {
@@ -145,15 +138,8 @@ namespace Kafka.EventLoop.Consume
             }
         }
 
-        public async Task SeekAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken)
+        public async Task SeekAsync(TopicPartitionOffset[] offsets, CancellationToken cancellationToken)
         {
-            var offsets = messages
-                .GroupBy(x => new TopicPartition(x.Topic, x.Partition))
-                .Select(tpGroup => new TopicPartitionOffset(
-                    tpGroup.Key,
-                    new Offset(tpGroup.Max(tpo => tpo.Offset) + 1)))
-                .ToList();
-
             var timeout = TimeSpan.FromSeconds(_consumerGroupConfig.SeekTimeoutMs ?? Defaults.SeekTimeoutMs);
             try
             {

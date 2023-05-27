@@ -2,6 +2,6 @@
 {
     internal class TransientErrorHandlingConfig
     {
-        public int? RestartConsumerAfterMs { get; set; }
+        public int? PauseAfterTransientErrorMs { get; set; }
     }
 }

@@ -15,9 +15,9 @@ namespace Kafka.EventLoop.Consume
 
         Task<List<TopicPartition>> GetCurrentAssignmentAsync(CancellationToken cancellationToken);
 
-        Task CommitAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken);
+        Task CommitAsync(TopicPartitionOffset[] offsets, CancellationToken cancellationToken);
 
-        Task SeekAsync(MessageInfo<TMessage>[] messages, CancellationToken cancellationToken);
+        Task SeekAsync(TopicPartitionOffset[] offsets, CancellationToken cancellationToken);
 
         Task CloseAsync();
     }

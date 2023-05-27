@@ -135,7 +135,7 @@
         },
         "ErrorHandling": {
           "Transient": {
-            "RestartConsumerAfterMs": 1000
+            "PauseAfterTransientErrorMs": 1000
           }
         }
       },

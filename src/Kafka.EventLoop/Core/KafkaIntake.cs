@@ -1,8 +1,10 @@
 ﻿using Confluent.Kafka;
+using Kafka.EventLoop.Configuration;
 using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.Exceptions;
 using Kafka.EventLoop.Produce;
+using Kafka.EventLoop.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Kafka.EventLoop.Core
@@ -84,12 +86,21 @@ namespace Kafka.EventLoop.Core
                 _intakeObserver?.OnConsumeError(ex.Error);
                 throw;
             }
-            
-            await ProcessMessagesAsync(messages, cancellationToken);
 
             try
             {
-                await _consumer.CommitAsync(messages, cancellationToken);
+                await ProcessMessagesAsync(messages, cancellationToken);
+            }
+            catch (TransientException ex)
+            {
+                await HandleTransientErrorAsync(messages, ex.InnerException, cancellationToken);
+                return new ThrottleOptions(assignment.Count, messages.Length);
+            }
+
+            try
+            {
+                var offsets = messages.ToTheNextOffsets();
+                await _consumer.CommitAsync(offsets, cancellationToken);
             }
             catch (ConnectivityException ex)
             {
@@ -99,12 +110,13 @@ namespace Kafka.EventLoop.Core
 
             if (containsPartialResults)
             {
-                // some messages were consumed from kafka but not processed
-                // we need to seek consumer back
-                // so that those messages are consumed again in the next iteration
+                // some messages were consumed from kafka but were not processed
+                // we need to seek consumer to the next offsets of the messages that were processed
+                // so that excessive messages are consumed again in the next iteration
                 try
                 {
-                    await _consumer.SeekAsync(messages, cancellationToken);
+                    var offsets = messages.ToTheNextOffsets();
+                    await _consumer.SeekAsync(offsets, cancellationToken);
                 }
                 catch (ConnectivityException ex)
                 {
@@ -151,6 +163,26 @@ namespace Kafka.EventLoop.Core
                 return;
             }
             _intakeObserver?.OnProcessingFinished();
+        }
+
+        private async Task HandleTransientErrorAsync(
+            MessageInfo<TMessage>[] messages,
+            Exception? exception,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogError(
+                exception,
+                "Transient error while processing messages in consumer {ConsumerId}", _consumer.ConsumerId);
+            
+            var delay = _errorHandlingConfig?.Transient?.PauseAfterTransientErrorMs ??
+                        Defaults.PauseAfterTransientErrorMs;
+            _logger.LogWarning("Pausing consumer {ConsumerId} for {Delay} ms...", _consumer.ConsumerId, delay);
+            await Task.Delay(delay, cancellationToken);
+
+            _logger.LogWarning("Moving consumer {ConsumerId} to the previous offset(s)", _consumer.ConsumerId);
+
+            var offsets = messages.ToTheStartOffsets();
+            await _consumer.SeekAsync(offsets, cancellationToken);
         }
 
         private async Task SendDeadLetterMessagesAsync(

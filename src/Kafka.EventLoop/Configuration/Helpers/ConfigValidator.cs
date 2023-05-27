@@ -226,10 +226,10 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
                 return;
-            if (config.RestartConsumerAfterMs is not > 0)
+            if (config.PauseAfterTransientErrorMs is not > 0)
             {
                 throw new ConfigValidationException(
-                    nameof(config.RestartConsumerAfterMs), "Value must be greater than 0");
+                    nameof(config.PauseAfterTransientErrorMs), "Value must be greater than 0");
             }
         }
 

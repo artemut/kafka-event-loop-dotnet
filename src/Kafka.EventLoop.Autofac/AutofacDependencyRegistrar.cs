@@ -260,7 +260,6 @@ namespace Kafka.EventLoop.Autofac
                     var newCtx = ctx.Resolve<IComponentContext>();
                     return new KafkaWorker<TMessage>(
                         consumerId,
-                        ctx.ResolveNamed<ConsumerGroupConfig>(groupId).ErrorHandling,
                         () => newCtx.ResolveNamed<Func<ConsumerId, IKafkaConsumer<TMessage>>>(groupId)(consumerId),
                         consumer => newCtx.ResolveNamed<Func<IKafkaConsumer<TMessage>, IKafkaIntake>>(groupId)(consumer),
                         ctx.ResolveOptional<KafkaGlobalObserver>(),

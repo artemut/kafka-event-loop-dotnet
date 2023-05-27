@@ -254,7 +254,6 @@ namespace Kafka.EventLoop.DependencyInjection.Default
             _internalRegistry.KafkaWorkerFactories[groupId] = (sp, consumerId) =>
                 new KafkaWorker<TMessage>(
                     consumerId,
-                    _internalRegistry.ConsumerGroupConfigProviders[groupId].ErrorHandling,
                     () => (IKafkaConsumer<TMessage>)_internalRegistry.KafkaConsumerFactories[groupId](sp, consumerId),
                     consumer => (IKafkaIntake)_internalRegistry.KafkaIntakeFactories[groupId](sp, consumer),
                     _internalRegistry.KafkaGlobalObserver?.Invoke(sp),
