@@ -1,5 +1,4 @@
-﻿using Kafka.EventLoop.Exceptions;
-using Kafka.EventLoop.IntegrationTests.Infrastructure.Models;
+﻿using Kafka.EventLoop.IntegrationTests.Infrastructure.Models;
 
 namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Controllers
 {
@@ -24,7 +23,7 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Controllers
             if (!_called)
             {
                 _called = true;
-                throw new ProcessingException(ProcessingErrorCode.CriticalError);
+                throw new Exception("critical error");
             }
             return Task.CompletedTask;
         }

@@ -1,5 +1,4 @@
-﻿using Kafka.EventLoop.Exceptions;
-using Kafka.EventLoop.WorkerService.Models;
+﻿using Kafka.EventLoop.WorkerService.Models;
 
 namespace Kafka.EventLoop.WorkerService.Controllers
 {
@@ -18,7 +17,7 @@ namespace Kafka.EventLoop.WorkerService.Controllers
                 $"Received {messages.Length} bar messages:{Environment.NewLine}" +
                 $"{string.Join(Environment.NewLine, messages.Select(x => x.Value.Key))}");
 
-            throw new ProcessingException(ProcessingErrorCode.CriticalError);
+            throw new Exception();
         }
     }
 }

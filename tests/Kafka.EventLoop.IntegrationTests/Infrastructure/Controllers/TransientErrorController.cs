@@ -22,7 +22,7 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Controllers
         {
             _eventsInterceptor.ProcessProductOrdersInvoked(GroupId, messages);
             if (++_callCount <= 2)
-                throw new ProcessingException(ProcessingErrorCode.TransientError);
+                throw new TransientException();
             return Task.CompletedTask;
         }
     }

@@ -52,10 +52,8 @@ namespace Kafka.EventLoop.Streaming
             }
             catch (ProduceException ex)
             {
-                throw new ProcessingException(
-                    ProcessingErrorCode.TransientError,
-                    "An error has occurred while streaming messages to another topic",
-                    ex);
+                throw new TransientException(
+                    "An error has occurred while streaming messages to another topic", ex);
             }
         }
     }

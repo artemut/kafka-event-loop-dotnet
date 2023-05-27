@@ -1,5 +1,4 @@
-﻿using Kafka.EventLoop.Exceptions;
-using Kafka.EventLoop.IntegrationTests.Infrastructure.Models;
+﻿using Kafka.EventLoop.IntegrationTests.Infrastructure.Models;
 
 namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Controllers
 {
@@ -19,7 +18,7 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Controllers
             CancellationToken token)
         {
             _eventsInterceptor.ProcessProductOrdersInvoked(GroupId, messages);
-            throw new ProcessingException(ProcessingErrorCode.CriticalError);
+            throw new Exception("critical error");
         }
     }
 }

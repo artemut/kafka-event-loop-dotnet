@@ -131,7 +131,7 @@ namespace Kafka.EventLoop.Core
             {
                 throw;
             }
-            catch (ProcessingException ex) when (ex.ErrorCode == ProcessingErrorCode.TransientError)
+            catch (TransientException ex)
             {
                 _intakeObserver?.OnProcessingException(ex);
                 throw;

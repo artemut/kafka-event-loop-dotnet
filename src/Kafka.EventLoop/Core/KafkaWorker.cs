@@ -68,16 +68,10 @@ namespace Kafka.EventLoop.Core
                     _logger.LogCritical(ex, "Fatal connectivity error while running consumer {ConsumerId}", _consumerId);
                     isRetryable = false;
                 }
-                catch (ProcessingException ex) when(ex.ErrorCode == ProcessingErrorCode.TransientError)
+                catch (TransientException ex)
                 {
                     _logger.LogError(ex.InnerException, "Transient error while processing messages in consumer {ConsumerId}", _consumerId);
                     isRetryable = true;
-                }
-                catch (ProcessingException ex) when (ex.ErrorCode == ProcessingErrorCode.CriticalError)
-                {
-                    // we catch this exception here when dead-lettering is not enabled
-                    _logger.LogCritical(ex.InnerException, "Critical error while processing messages in consumer {ConsumerId}", _consumerId);
-                    isRetryable = false;
                 }
                 catch (DeadLetteringFailedException ex)
                 {
