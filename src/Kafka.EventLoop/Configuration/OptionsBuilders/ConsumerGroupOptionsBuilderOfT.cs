@@ -117,7 +117,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     $"Dead lettering options are already provided for consumer group {_groupId}");
             }
 
-            var deadLetteringConfig = _consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering;
+            var deadLetteringConfig = _consumerGroupConfig.ErrorHandling?.DeadLettering;
             if (deadLetteringConfig == null)
             {
                 throw new InvalidOptionsException(
@@ -245,7 +245,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                 throw new InvalidOptionsException(
                     $"Message deserializer is not specified for consumer group {_groupId}");
             }
-            if (_consumerGroupConfig.ErrorHandling?.Critical?.DeadLettering != null &&
+            if (_consumerGroupConfig.ErrorHandling?.DeadLettering != null &&
                 _deadLetteringOptions == null)
             {
                 throw new InvalidOptionsException(

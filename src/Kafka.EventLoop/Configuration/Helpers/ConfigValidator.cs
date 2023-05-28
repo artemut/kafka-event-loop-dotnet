@@ -202,41 +202,11 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
                 return;
-            try
-            {
-                Validate(config.Transient);
-            }
-            catch (ConfigValidationException ex)
-            {
-                throw new ConfigValidationException(
-                    $"{nameof(config.Transient)}:{ex.PropertyName}", ex.Message);
-            }
-            try
-            {
-                Validate(config.Critical);
-            }
-            catch (ConfigValidationException ex)
-            {
-                throw new ConfigValidationException(
-                    $"{nameof(config.Critical)}:{ex.PropertyName}", ex.Message);
-            }
-        }
-
-        private static void Validate(TransientErrorHandlingConfig? config)
-        {
-            if (config == null)
-                return;
-            if (config.PauseAfterTransientErrorMs is not > 0)
+            if (config.PauseAfterTransientErrorMs is <= 0)
             {
                 throw new ConfigValidationException(
                     nameof(config.PauseAfterTransientErrorMs), "Value must be greater than 0");
             }
-        }
-
-        private static void Validate(CriticalErrorHandlingConfig? config)
-        {
-            if (config == null)
-                return;
             try
             {
                 Validate(config.DeadLettering);

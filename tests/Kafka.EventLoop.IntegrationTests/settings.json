@@ -134,9 +134,7 @@
           }
         },
         "ErrorHandling": {
-          "Transient": {
-            "PauseAfterTransientErrorMs": 1000
-          }
+          "PauseAfterTransientErrorMs": 1000
         }
       },
       {
@@ -161,10 +159,8 @@
           }
         },
         "ErrorHandling": {
-          "Critical": {
-            "DeadLettering": {
-              "TopicName": "event-loop--dead-letters-topic--1-partition"
-            }
+          "DeadLettering": {
+            "TopicName": "event-loop--dead-letters-topic--1-partition"
           }
         }
       },

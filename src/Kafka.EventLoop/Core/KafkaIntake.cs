@@ -151,7 +151,7 @@ namespace Kafka.EventLoop.Core
             catch (Exception ex)
             {
                 _intakeObserver?.OnProcessingException(ex);
-                var deadLetteringConfig = _errorHandlingConfig?.Critical?.DeadLettering;
+                var deadLetteringConfig = _errorHandlingConfig?.DeadLettering;
                 if (deadLetteringConfig == null)
                     throw;
 
@@ -174,7 +174,7 @@ namespace Kafka.EventLoop.Core
                 exception,
                 "Transient error while processing messages in consumer {ConsumerId}", _consumer.ConsumerId);
             
-            var delay = _errorHandlingConfig?.Transient?.PauseAfterTransientErrorMs ??
+            var delay = _errorHandlingConfig?.PauseAfterTransientErrorMs ??
                         Defaults.PauseAfterTransientErrorMs;
             _logger.LogWarning("Pausing consumer {ConsumerId} for {Delay} ms...", _consumer.ConsumerId, delay);
             await Task.Delay(delay, cancellationToken);

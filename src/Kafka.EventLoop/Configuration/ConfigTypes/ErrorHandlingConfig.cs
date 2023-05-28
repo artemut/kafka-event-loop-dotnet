@@ -2,7 +2,7 @@
 {
     internal class ErrorHandlingConfig
     {
-        public TransientErrorHandlingConfig? Transient { get; set; }
-        public CriticalErrorHandlingConfig? Critical { get; set; }
+        public int? PauseAfterTransientErrorMs { get; set; }
+        public DeadLetteringConfig? DeadLettering { get; set; }
     }
 }
