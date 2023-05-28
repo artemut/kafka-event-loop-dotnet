@@ -148,11 +148,6 @@
             "Name": "FixedSize",
             "Size": 2
           }
-        },
-        "ErrorHandling": {
-          "Critical": {
-            "StopConsumer": true
-          }
         }
       },
       {

@@ -2,7 +2,6 @@
 {
     internal class CriticalErrorHandlingConfig
     {
-        public bool? StopConsumer { get; set; }
         public DeadLetteringConfig? DeadLettering { get; set; }
     }
 }

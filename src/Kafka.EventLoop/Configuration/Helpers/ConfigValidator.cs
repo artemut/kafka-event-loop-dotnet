@@ -237,12 +237,6 @@ namespace Kafka.EventLoop.Configuration.Helpers
         {
             if (config == null)
                 return;
-            if (config.StopConsumer.HasValue && config.DeadLettering != null)
-            {
-                throw new ConfigValidationException(
-                    "", $"Please specify either {nameof(config.StopConsumer)} " +
-                        $"or {nameof(config.DeadLettering)}");
-            }
             try
             {
                 Validate(config.DeadLettering);
