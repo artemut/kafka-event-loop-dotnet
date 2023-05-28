@@ -147,11 +147,6 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                     new TimeoutRunner());
         }
 
-        public void AddDeadLetterMessageKey<TKey, TMessage>(string groupId, Func<TMessage, TKey> messageKeyProvider)
-        {
-            _internalRegistry.DeadLetterMessageKeyProviders[groupId] = messageKeyProvider;
-        }
-
         public void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId)
         {
             _internalRegistry
@@ -170,15 +165,17 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                     $"Error in custom dead-letter message serialization for consumer group {groupId}");
         }
 
-        public void AddDeadLetterProducer<TKey, TMessage>(
+        public void AddDeadLetterProducer<TMessage>(
             string groupId,
             ProduceConfig config,
             ProducerConfig confluentConfig)
         {
+            // todo: currently Ignore key is used, consider extending
+
             _internalRegistry.DeadLetterProducerProviders[groupId] = new LazyFunc<IServiceProvider, object>(
-                sp => new KafkaProducer<TKey, TMessage>(
-                    BuildDeadLetterConfluentProducer<TKey, TMessage>(groupId, confluentConfig, sp),
-                    (Func<TMessage, TKey>)_internalRegistry.DeadLetterMessageKeyProviders[groupId],
+                sp => new KafkaProducer<Ignore, TMessage>(
+                    BuildDeadLetterConfluentProducer<TMessage>(groupId, confluentConfig, sp),
+                    _ => null!,
                     config));
         }
 
@@ -283,16 +280,17 @@ namespace Kafka.EventLoop.DependencyInjection.Default
                 .Build();
         }
 
-        private IProducer<TKey, TMessage> BuildDeadLetterConfluentProducer<TKey, TMessage>(
+        private IProducer<Ignore, TMessage> BuildDeadLetterConfluentProducer<TMessage>(
             string groupId,
             ProducerConfig config,
             IServiceProvider serviceProvider)
         {
-            var builder = new ProducerBuilder<TKey, TMessage>(config);
+            var builder = new ProducerBuilder<Ignore, TMessage>(config);
             var serializer = (ISerializer<TMessage>)_internalRegistry
                 .DeadLetterMessageSerializerProviders[groupId](serviceProvider);
-            var logger = serviceProvider.GetRequiredService<ILogger<IProducer<TKey, TMessage>>>();
+            var logger = serviceProvider.GetRequiredService<ILogger<IProducer<Ignore, TMessage>>>();
             return builder
+                .SetKeySerializer(new IgnoreSerializer())
                 .SetValueSerializer(serializer)
                 .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
                 .Build();

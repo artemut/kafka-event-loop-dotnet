@@ -32,8 +32,7 @@ IKafkaOptions BuildKafkaOptions(IKafkaOptionsBuilder kafkaOptionsBuilder)
             .HasMessageType<BarMessage>()
             .HasJsonMessageDeserializer()
             .HasController<BarController>()
-            .HasDeadLettering<string>(dlOptions => dlOptions
-                .HasDeadLetterMessageKey(x => x.Key)
+            .HasDeadLettering(dlOptions => dlOptions
                 .HasJsonDeadLetterMessageSerializer()
                 .HasKafkaConfig(c => c.Acks = Acks.All)
                 .Build())

@@ -19,8 +19,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
         IConsumerGroupOptionsBuilder<TMessage> HasController<TController>()
             where TController : class, IKafkaController<TMessage>;
 
-        IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering<TMessageKey>(
-            Func<IDeadLetteringOptionsBuilder<TMessageKey, TMessage>, IDeadLetteringOptions> options);
+        IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering(
+            Func<IDeadLetteringOptionsBuilder<TMessage>, IDeadLetteringOptions> options);
 
         IConsumerGroupOptionsBuilder<TMessage> HasStreaming<TOutMessage>(
             Func<IStreamingOptionsBuilder<TMessage, TOutMessage>, IStreamingOptions> options);

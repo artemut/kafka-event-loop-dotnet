@@ -129,9 +129,8 @@ namespace Kafka.EventLoop.IntegrationTests.Infrastructure.Hosting
                     .HasMessageType<ProductOrderModel>()
                     .HasJsonMessageDeserializer()
                     .HasController<CriticalErrorDeadLetteringController>()
-                    .HasDeadLettering<long>(dlOptions => dlOptions
+                    .HasDeadLettering(dlOptions => dlOptions
                         .HasJsonDeadLetterMessageSerializer()
-                        .HasDeadLetterMessageKey(x => x.Id)
                         .Build())
                     .HasKafkaConfig(c => c.AutoOffsetReset = AutoOffsetReset.Earliest)
                     .HasKafkaConfig(c => c.FetchWaitMaxMs = 100)

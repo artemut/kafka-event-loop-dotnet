@@ -15,7 +15,6 @@ namespace Kafka.EventLoop.DependencyInjection.Default
         public Dictionary<string, Func<IServiceProvider, object>> KafkaControllerProviders { get; } = new();
         public Dictionary<string, ConsumerGroupConfig> ConsumerGroupConfigProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, ConsumerId, object>> KafkaConsumerFactories { get; } = new();
-        public Dictionary<string, object> DeadLetterMessageKeyProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> DeadLetterMessageSerializerProviders { get; } = new();
         public Dictionary<string, LazyFunc<IServiceProvider, object>> DeadLetterProducerProviders { get; } = new();
         public Dictionary<string, Func<IServiceProvider, object>> StreamingMessageSerializerProviders { get; } = new();

@@ -108,8 +108,8 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
-        public IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering<TMessageKey>(
-            Func<IDeadLetteringOptionsBuilder<TMessageKey, TMessage>, IDeadLetteringOptions> optionsAction)
+        public IConsumerGroupOptionsBuilder<TMessage> HasDeadLettering(
+            Func<IDeadLetteringOptionsBuilder<TMessage>, IDeadLetteringOptions> optionsAction)
         {
             if (_deadLetteringOptions != null)
             {
@@ -125,7 +125,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
                     "Settings do not contain corresponding critical error handling section");
             }
 
-            var builder = new DeadLetteringOptionsBuilder<TMessageKey, TMessage>(
+            var builder = new DeadLetteringOptionsBuilder<TMessage>(
                 _groupId,
                 _connectionString,
                 deadLetteringConfig,

@@ -23,11 +23,10 @@ namespace Kafka.EventLoop.DependencyInjection
             where TController : class, IKafkaController<TMessage>;
         void AddConsumerGroupConfig(string groupId, ConsumerGroupConfig config);
         void AddKafkaConsumer<TMessage>(string groupId, ConsumerConfig confluentConfig);
-        void AddDeadLetterMessageKey<TMessageKey, TMessage>(string groupId, Func<TMessage, TMessageKey> messageKeyProvider);
         void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId);
         void AddCustomDeadLetterMessageSerializer<TSerializer, TMessage>(string groupId)
             where TSerializer : class, ISerializer<TMessage>;
-        void AddDeadLetterProducer<TMessageKey, TMessage>(string groupId, ProduceConfig config, ProducerConfig confluentConfig);
+        void AddDeadLetterProducer<TMessage>(string groupId, ProduceConfig config, ProducerConfig confluentConfig);
         void AddJsonStreamingMessageSerializer<TOutMessage>(string groupId);
         void AddCustomStreamingMessageSerializer<TSerializer, TOutMessage>(string groupId)
             where TSerializer : class, ISerializer<TOutMessage>;

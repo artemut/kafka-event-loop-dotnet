@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Kafka.EventLoop.Configuration.Options;
+﻿using Kafka.EventLoop.Configuration.Options;
 using Confluent.Kafka;
 using Kafka.EventLoop.DependencyInjection;
 using Kafka.EventLoop.Configuration.ConfigTypes;
@@ -7,15 +6,14 @@ using Kafka.EventLoop.Exceptions;
 
 namespace Kafka.EventLoop.Configuration.OptionsBuilders
 {
-    internal sealed class DeadLetteringOptionsBuilder<TMessageKey, TMessage>
-        : IDeadLetteringOptionsBuilder<TMessageKey, TMessage>
+    internal sealed class DeadLetteringOptionsBuilder<TMessage>
+        : IDeadLetteringOptionsBuilder<TMessage>
     {
         private readonly string _groupId;
         private readonly string _connectionString;
         private readonly DeadLetteringConfig _config;
         private readonly IDependencyRegistrar _dependencyRegistrar;
         private readonly ProducerConfig _confluentConfig;
-        private bool _hasMessageKeyType;
         private bool _hasSerializerType;
 
         public DeadLetteringOptionsBuilder(
@@ -31,20 +29,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _confluentConfig = new ProducerConfig();
         }
 
-        public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasDeadLetterMessageKey(
-            Expression<Func<TMessage, TMessageKey>> messageKey)
-        {
-            if (_hasMessageKeyType)
-            {
-                throw new InvalidOptionsException(
-                    $"Dead letter message key is already specified for consumer group {_groupId}");
-            }
-            _dependencyRegistrar.AddDeadLetterMessageKey(_groupId, messageKey.Compile());
-            _hasMessageKeyType = true;
-            return this;
-        }
-
-        public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasJsonDeadLetterMessageSerializer()
+        public IDeadLetteringOptionsBuilder<TMessage> HasJsonDeadLetterMessageSerializer()
         {
             if (_hasSerializerType)
             {
@@ -56,7 +41,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
-        public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasCustomDeadLetterMessageSerializer<TSerializer>()
+        public IDeadLetteringOptionsBuilder<TMessage> HasCustomDeadLetterMessageSerializer<TSerializer>()
             where TSerializer : class, ISerializer<TMessage>
         {
             if (_hasSerializerType)
@@ -69,7 +54,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             return this;
         }
 
-        public IDeadLetteringOptionsBuilder<TMessageKey, TMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfigAction)
+        public IDeadLetteringOptionsBuilder<TMessage> HasKafkaConfig(Action<ProducerConfig> kafkaConfigAction)
         {
             kafkaConfigAction(_confluentConfig);
 
@@ -85,11 +70,6 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
 
         public IDeadLetteringOptions Build()
         {
-            if (!_hasMessageKeyType)
-            {
-                throw new InvalidOptionsException(
-                    $"Dead letter message key is not specified for consumer group {_groupId}");
-            }
             if (!_hasSerializerType)
             {
                 throw new InvalidOptionsException(
@@ -99,7 +79,7 @@ namespace Kafka.EventLoop.Configuration.OptionsBuilders
             _confluentConfig.BootstrapServers = _config.ConnectionString ?? _connectionString;
             _confluentConfig.EnableDeliveryReports ??= true;
             _confluentConfig.Acks ??= Acks.Leader;
-            _dependencyRegistrar.AddDeadLetterProducer<TMessageKey, TMessage>(
+            _dependencyRegistrar.AddDeadLetterProducer<TMessage>(
                 _groupId,
                 _config,
                 _confluentConfig);

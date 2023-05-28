@@ -145,14 +145,6 @@ namespace Kafka.EventLoop.Autofac
                 .Named<IKafkaConsumer<TMessage>>(groupId);
         }
 
-        public void AddDeadLetterMessageKey<TKey, TMessage>(string groupId, Func<TMessage, TKey> messageKeyProvider)
-        {
-            _builder
-                .RegisterInstance(messageKeyProvider)
-                .Named<Func<TMessage, TKey>>(DeadLetteringName(groupId))
-                .SingleInstance();
-        }
-
         public void AddJsonDeadLetterMessageSerializer<TMessage>(string groupId)
         {
             _builder
@@ -169,19 +161,21 @@ namespace Kafka.EventLoop.Autofac
                 .Named<ISerializer<TMessage>>(DeadLetteringName(groupId));
         }
 
-        public void AddDeadLetterProducer<TKey, TMessage>(
+        public void AddDeadLetterProducer<TMessage>(
             string groupId,
             ProduceConfig config,
             ProducerConfig confluentConfig)
         {
+            // todo: currently Ignore key is used, consider extending
+
             _builder
-                .RegisterType<KafkaProducer<TKey, TMessage>>()
+                .RegisterType<KafkaProducer<Ignore, TMessage>>()
                 .WithParameter(
-                    (p, _) => p.ParameterType == typeof(IProducer<TKey, TMessage>),
-                    (_, ctx) => BuildDeadLetterConfluentProducer<TKey, TMessage>(groupId, confluentConfig, ctx))
+                    (p, _) => p.ParameterType == typeof(IProducer<Ignore, TMessage>),
+                    (_, ctx) => BuildDeadLetterConfluentProducer<TMessage>(groupId, confluentConfig, ctx))
                 .WithParameter(
-                    (p, _) => p.ParameterType == typeof(Func<TMessage, TKey>),
-                    (_, ctx) => ctx.ResolveNamed<Func<TMessage, TKey>>(DeadLetteringName(groupId)))
+                    (p, _) => p.ParameterType == typeof(Func<TMessage, Ignore>),
+                    (_, _) => new Func<TMessage, Ignore>(_ => null!))
                 .WithParameter(
                     (p, _) => p.ParameterType == typeof(ProduceConfig),
                     (_, _) => config)
@@ -295,15 +289,16 @@ namespace Kafka.EventLoop.Autofac
                 .Build();
         }
 
-        private IProducer<TKey, TMessage> BuildDeadLetterConfluentProducer<TKey, TMessage>(
+        private IProducer<Ignore, TMessage> BuildDeadLetterConfluentProducer<TMessage>(
             string groupId,
             ProducerConfig config,
             IComponentContext context)
         {
-            var builder = new ProducerBuilder<TKey, TMessage>(config);
+            var builder = new ProducerBuilder<Ignore, TMessage>(config);
             var serializer = context.ResolveNamed<ISerializer<TMessage>>(DeadLetteringName(groupId));
-            var logger = context.Resolve<ILogger<IProducer<TKey, TMessage>>>();
+            var logger = context.Resolve<ILogger<IProducer<Ignore, TMessage>>>();
             return builder
+                .SetKeySerializer(new IgnoreSerializer())
                 .SetValueSerializer(serializer)
                 .SetLogHandler((_, msg) => logger.Log(msg.Level.ToLogLevel(), "{Message}", msg.Message))
                 .Build();
