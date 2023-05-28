@@ -213,7 +213,7 @@ namespace Kafka.EventLoop.Core
             catch (ProduceException ex)
             {
                 _intakeObserver?.OnDeadLetteringFailed(ex);
-                throw new DeadLetteringFailedException(deadLetteringConfig.OnDeadLetteringFailed, ex);
+                throw new DeadLetteringFailedException(ex);
             }
             _intakeObserver?.OnDeadLetteringFinished();
         }

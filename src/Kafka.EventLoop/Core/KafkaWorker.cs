@@ -1,5 +1,4 @@
 ﻿using Kafka.EventLoop.Configuration;
-using Kafka.EventLoop.Configuration.ConfigTypes;
 using Kafka.EventLoop.Consume;
 using Kafka.EventLoop.Exceptions;
 using Microsoft.Extensions.Logging;
@@ -68,7 +67,7 @@ namespace Kafka.EventLoop.Core
                 catch (DeadLetteringFailedException ex)
                 {
                     _logger.LogCritical(ex.InnerException, "Dead-lettering failed for consumer {ConsumerId}", _consumerId);
-                    isRetryable = ex.Strategy is DeadLetteringFailStrategy.RestartConsumer or null;
+                    isRetryable = true;
                 }
                 catch (DependencyException ex)
                 {
