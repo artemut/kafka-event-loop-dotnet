@@ -1,5 +1,8 @@
 # Kafka.EventLoop
 
+[![](https://img.shields.io/nuget/vpre/Kafka.EventLoop?color=success&label=Kafka.EventLoop&logo=nuget&logoColor=success&style=flat-square)](https://www.nuget.org/packages/Kafka.EventLoop)<br/>
+[![](https://img.shields.io/nuget/vpre/Kafka.EventLoop.Autofac?color=success&label=Kafka.EventLoop.Autofac&logo=nuget&logoColor=success&style=flat-square)](https://www.nuget.org/packages/Kafka.EventLoop.Autofac)
+
 Use this library in your .NET Worker Service to have continuous processing of Kafka messages.
 
 The library implements the "Event Loop" design pattern:
