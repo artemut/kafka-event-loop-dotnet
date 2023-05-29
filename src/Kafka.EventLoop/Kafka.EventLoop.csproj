@@ -6,6 +6,24 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageId>Kafka.EventLoop</PackageId>
+    <Version>1.0.0-rc1</Version>
+    <Description>Use this library in your .NET Worker Service to have continuous processing of Kafka messages</Description>
+    <Authors>artemut</Authors>
+    <PackageProjectUrl>https://github.com/artemut/kafka-event-loop-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/artemut/kafka-event-loop-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Kafka,Consumer</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\package-icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\readme.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" Version="2.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />

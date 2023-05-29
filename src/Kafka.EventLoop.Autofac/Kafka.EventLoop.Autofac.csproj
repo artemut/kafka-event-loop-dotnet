@@ -1,10 +1,28 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Kafka.EventLoop.Autofac</PackageId>
+    <Version>1.0.0-rc1</Version>
+    <Description>Use this library in your .NET Worker Service with Autofac IoC container to have continuous processing of Kafka messages</Description>
+    <Authors>artemut</Authors>
+    <PackageProjectUrl>https://github.com/artemut/kafka-event-loop-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/artemut/kafka-event-loop-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Kafka,Consumer,Autofac</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\package-icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\readme.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="7.0.1" />
